@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>MAXWELL 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.13/vue.global.prod.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0a;
+  --ink:#f5f5f3;
+  --mid:#8a8a86;
+  --low:#55554f;
+  --hair:#1f1f1d;
+  --hair-soft:#161614;
+  --accent:#43b34a;            /* Xbox */
+  --accent-dim:rgba(67,179,74,.14);
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Inter Tight',system-ui,sans-serif;
+}
+[data-platform="ps"]{
+  --accent:#3a86d4;
+  --accent-dim:rgba(58,134,212,.14);
+}
+[data-platform="nintendo"]{
+  --accent:#e4404b;
+  --accent-dim:rgba(228,64,75,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  min-width:900px;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;user-select:none;
+}
+#app{max-width:1000px;margin:0 auto;padding:0 48px;min-height:100vh;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
+
+/* ── nagłówek ── */
+header{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:40px 0 28px;border-bottom:1px solid var(--hair);
+}
+.title{display:flex;align-items:baseline;gap:14px}
+.title h1{font-size:15px;font-weight:600;letter-spacing:.22em}
+.title .platform{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--accent);
+  border:1px solid var(--accent);border-radius:2px;padding:2px 7px;
+}
+.head-r{display:flex;align-items:baseline;gap:28px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--mid)}
+.head-r .live{display:inline-flex;align-items:center;gap:8px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.batt{display:inline-flex;align-items:center;gap:10px;color:var(--ink)}
+.gauge{width:56px;height:1px;background:var(--hair);position:relative}
+.gauge i{position:absolute;left:0;top:-0.5px;height:2px;background:var(--ink);transition:width .6s ease}
+
+/* ── EQ ── */
+.eq{padding:34px 0 0}
+.eq-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--low);text-transform:uppercase}
+.eq-hint{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--low)}
+.eq-hint b{color:var(--accent);font-weight:500}
+.eq-canvas{position:relative;height:300px}
+.eq-canvas canvas,.eq-canvas svg{position:absolute;inset:0;width:100%;height:100%}
+
+/* presety */
+.presets{
+  display:flex;gap:2px;margin-top:18px;padding-bottom:34px;border-bottom:1px solid var(--hair);
+}
+.preset{
+  flex:1;padding:10px 4px 12px;font-size:12px;font-weight:500;color:var(--mid);
+  border-bottom:1px solid transparent;transition:color .15s,border-color .15s;
+  white-space:nowrap;letter-spacing:.01em;
+}
+.preset:hover{color:var(--ink)}
+.preset.on{color:var(--ink);border-bottom-color:var(--accent)}
+.preset .c{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--accent);vertical-align:super;margin-left:3px;opacity:0}
+.preset.custom .c{opacity:.9}
+
+/* ── wiersze kontrolne ── */
+.rows{flex:1}
+.row{
+  display:grid;grid-template-columns:190px 1fr 150px;align-items:center;gap:36px;
+  min-height:76px;border-bottom:1px solid var(--hair-soft);
+}
+.row:last-child{border-bottom:1px solid var(--hair)}
+.row .name{font-size:13.5px;font-weight:500;letter-spacing:.02em}
+.row .name small{display:block;font-weight:400;font-size:11.5px;color:var(--low);margin-top:2px;letter-spacing:0}
+.row .value{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.row .value small{color:var(--low)}
+
+/* suwak */
+.slider{position:relative;height:28px;display:flex;align-items:center}
+.slider input{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:ew-resize;position:relative;z-index:2}
+.slider input::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
+.slider input::-moz-range-track{height:1px;background:var(--hair)}
+.slider input::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ink);
+  margin-top:-5px;transition:transform .12s;
+}
+.slider input::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ink);border:0}
+.slider input:hover::-webkit-slider-thumb,.slider input:active::-webkit-slider-thumb{background:var(--accent);transform:scale(1.25)}
+.slider input:focus-visible::-webkit-slider-thumb{background:var(--accent)}
+.slider .fill{position:absolute;left:0;top:50%;height:1px;margin-top:-.5px;background:var(--ink);pointer-events:none;transition:background .15s}
+.slider:hover .fill{background:var(--accent)}
+.slider .center-tick{position:absolute;left:50%;top:50%;width:1px;height:9px;margin:-4.5px 0 0;background:var(--low)}
+.slider .end{position:absolute;top:50%;width:1px;height:5px;margin-top:-2.5px;background:var(--low)}
+.mixlbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--low);margin-top:2px}
+
+/* opcje tekstowe */
+.opts{display:flex;gap:26px}
+.opt{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--low);
+  padding:4px 0;border-bottom:1px solid transparent;transition:.15s;
+}
+.opt:hover{color:var(--mid)}
+.opt.on{color:var(--ink);border-bottom-color:var(--accent)}
+
+/* stepper */
+.stepper{display:flex;align-items:center;gap:18px}
+.stepper button{font-family:var(--mono);font-size:14px;color:var(--low);width:20px;height:20px;line-height:1}
+.stepper button:hover{color:var(--accent)}
+.stepper .sv{font-family:var(--mono);font-size:12.5px;min-width:70px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* LED mikrofonu */
+.mic{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em}
+.mic .dot{width:7px;height:7px;transition:.2s}
+.mic.muted .dot{background:var(--low);box-shadow:none}
+.mic .dot{box-shadow:0 0 10px var(--accent)}
+
+/* stopka */
+footer{
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding:26px 0 34px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--low);
+}
+.pf-switch{display:flex;gap:14px}
+.pf-switch button{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--low);padding:2px 0;border-bottom:1px solid transparent}
+.pf-switch button.on{color:var(--accent);border-bottom-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="title">
+      <h1>MAXWELL&nbsp;2</h1>
+      <span class="platform">{{ platformLabel }}</span>
+    </div>
+    <div class="head-r">
+      <span class="live"><span class="dot"></span>DONGLE</span>
+      <span>FW&nbsp;1.42</span>
+      <span class="batt">
+        <span class="gauge"><i :style="{width:battery+'%'}"></i></span>
+        {{ battery }}%<span style="color:var(--low)">&nbsp;·&nbsp;{{ hoursLeft }}h</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ── KOREKTOR ── -->
+  <section class="eq">
+    <div class="eq-head">
+      <span class="lbl">Korektor</span>
+      <span class="eq-hint" v-if="isCustom"><b>przeciągnij punkty</b>, aby edytować</span>
+      <span class="eq-hint" v-else>preset fabryczny — tylko odczyt</span>
+    </div>
+    <div class="eq-canvas" ref="disp">
+      <canvas ref="cv"></canvas>
+      <svg ref="eqSvg" :viewBox="'0 0 '+W+' '+H" preserveAspectRatio="none"
+           @pointermove="eqMove" @pointerup="eqEnd" @pointerleave="eqEnd">
+        <line v-for="(f,i) in freqs" :key="'g'+i" :x1="bx(i)" :y1="8" :x2="bx(i)" :y2="H-24"
+              stroke="#161614" stroke-width="1" vector-effect="non-scaling-stroke"/>
+        <line :x1="0" :y1="zero" :x2="W" :y2="zero" stroke="#242422" stroke-width="1"
+              stroke-dasharray="1 5" vector-effect="non-scaling-stroke"/>
+        <text v-for="(f,i) in freqs" :key="'t'+i" :x="bx(i)" :y="H-6" text-anchor="middle"
+              font-family="IBM Plex Mono" font-size="9" fill="#55554f">{{ f }}</text>
+        <path :d="curvePath" fill="none" stroke="#f5f5f3" stroke-width="1.5"
+              stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+        <circle v-for="(v,i) in shownBands" :key="'p'+i" :cx="bx(i)" :cy="by(v)"
+                :r="isCustom?5:3" :fill="isCustom?'var(--accent)':'#f5f5f3'"
+                :style="{cursor:isCustom?'grab':'default'}" @pointerdown="eqStart($event,i)"/>
+        <g v-if="dragIdx>=0">
+          <text :x="bx(dragIdx)" :y="Math.max(16, by(shownBands[dragIdx])-16)" text-anchor="middle"
+                font-family="IBM Plex Mono" font-size="11" fill="var(--accent)"
+                style="font-variant-numeric:tabular-nums">{{ fmtDb(shownBands[dragIdx]) }}</text>
+        </g>
+      </svg>
+    </div>
+    <div class="presets" role="listbox" aria-label="Presety">
+      <button v-for="(p,i) in presets" :key="p.name" class="preset"
+              :class="{on:i===presetIdx, custom:p.custom}" role="option" :aria-selected="i===presetIdx"
+              @click="selectPreset(i)">{{ p.name }}<span class="c">C</span></button>
+    </div>
+  </section>
+
+  <!-- ── KONTROLA ── -->
+  <div class="rows">
+
+    <div class="row">
+      <div class="name">Sidetone<small>odsłuch własnego głosu</small></div>
+      <div class="slider">
+        <span class="fill" :style="{width:(sidetone/31*100)+'%'}"></span>
+        <span class="end" style="left:0"></span><span class="end" style="right:0"></span>
+        <input type="range" min="0" max="31" v-model.number="sidetone" aria-label="Sidetone">
+      </div>
+      <div class="value">{{ sidetone===0 ? 'wył.' : sidetone }}<small v-if="sidetone>0"> / 31</small></div>
+    </div>
+
+    <div class="row">
+      <div class="name">Chatmix<small>balans gra — czat</small></div>
+      <div>
+        <div class="slider">
+          <span class="center-tick"></span>
+          <span class="end" style="left:0"></span><span class="end" style="right:0"></span>
+          <input type="range" min="0" max="20" v-model.number="chatmix" aria-label="Chatmix">
+        </div>
+        <div class="mixlbl"><span>GRA</span><span>CZAT</span></div>
+      </div>
+      <div class="value">{{ mix.game }}<small> / </small>{{ mix.chat }}</div>
+    </div>
+
+    <div class="row">
+      <div class="name">Filtr szumów<small>mikrofon, redukcja AI</small></div>
+      <div class="opts" role="radiogroup" aria-label="Filtr szumów">
+        <button v-for="(n,i) in ['wył.','niski','wysoki']" :key="n" class="opt"
+                :class="{on:i===noiseFilter}" role="radio" :aria-checked="i===noiseFilter"
+                @click="noiseFilter=i">{{ n }}</button>
+      </div>
+      <div class="value">{{ ['—','−10 dB','−20 dB'][noiseFilter] }}</div>
+    </div>
+
+    <div class="row">
+      <div class="name">Komunikaty głosowe</div>
+      <div class="opts" role="radiogroup" aria-label="Komunikaty głosowe">
+        <button class="opt" :class="{on:voicePrompts}" role="radio" :aria-checked="voicePrompts" @click="voicePrompts=true">wł.</button>
+        <button class="opt" :class="{on:!voicePrompts}" role="radio" :aria-checked="!voicePrompts" @click="voicePrompts=false">wył.</button>
+      </div>
+      <div class="value">{{ voicePrompts ? 'aktywne' : '—' }}</div>
+    </div>
+
+    <div class="row">
+      <div class="name">Auto-wyłączanie<small>po bezczynności</small></div>
+      <div class="stepper">
+        <button @click="stepOff(-1)" aria-label="Krócej">−</button>
+        <span class="sv">{{ autoOff===0 ? 'wył.' : autoOff+' min' }}</span>
+        <button @click="stepOff(1)" aria-label="Dłużej">+</button>
+      </div>
+      <div class="value">{{ autoOff===0 ? '—' : '≤ '+autoOff+' min' }}</div>
+    </div>
+
+    <div class="row">
+      <div class="name">Mikrofon<small>przełącznik na muszli — odczyt</small></div>
+      <div class="mic" :class="{muted:micMuted}"><span class="dot"></span>{{ micMuted ? 'WYCISZONY' : 'AKTYWNY' }}</div>
+      <div class="value">{{ micMuted ? 'mute' : 'live' }}</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>TAURI 2 · VUE 3 · HEADSETCONTROL</span>
+    <div class="pf-switch" aria-label="Podgląd platformy (docelowo wykrywane po PID)">
+      <span style="border:0;color:var(--low)">PODGLĄD:</span>
+      <button :class="{on:platform==='xbox'}" @click="platform='xbox'">XBOX</button>
+      <button :class="{on:platform==='ps'}" @click="platform='ps'">PLAYSTATION</button>
+      <button :class="{on:platform==='nintendo'}" @click="platform='nintendo'">NINTENDO</button>
+    </div>
+    <span>MOCK · VID 3329</span>
+  </footer>
+</div>
+
+<script>
+const { createApp, ref, computed, watchEffect, onMounted, onBeforeUnmount } = Vue;
+createApp({
+  setup(){
+    const platform = ref('xbox');
+    watchEffect(()=>{ document.documentElement.dataset.platform = platform.value; });
+    const battery = ref(74);
+    const sidetone = ref(12);
+    const chatmix = ref(10);
+    const noiseFilter = ref(1);
+    const voicePrompts = ref(true);
+    const micMuted = ref(false);
+    const autoOff = ref(30);
+    const OFF = [0,5,10,15,30,45,60,90,120,240];
+    const stepOff = d => {
+      const i = OFF.indexOf(autoOff.value);
+      autoOff.value = OFF[Math.max(0,Math.min(OFF.length-1,i+d))];
+    };
+
+    const freqs = ['31','62','125','250','500','1k','2k','4k','8k','16k'];
+    const presets = ref([
+      { name:'Audeze',       bands:[ .5,.5,0,0,0,0,.5,1,.5,0 ] },
+      { name:'Treble',       bands:[-.5,-.5,0,0,.5,1.5,3,4.5,5,4.5] },
+      { name:'Bass',         bands:[ 6,5,4,2,.5,0,0,0,.5,.5] },
+      { name:'Immersive',    bands:[ 3.5,3,1.5,.5,0,.5,1.5,3,3.5,3 ] },
+      { name:'Competition',  bands:[-2.5,-2,0,1,2.5,3.5,4,3.5,2,1 ] },
+      { name:'Footsteps',    bands:[-5,-3.5,-1,2,4,5.5,4.5,3,1,0 ] },
+      { name:'EQ 1', custom:true, bands:[ 2.5,2,1,0,-.5,0,1.5,2.5,3,2.5 ] },
+      { name:'EQ 2', custom:true, bands:[ 0,0,0,0,0,0,0,0,0,0 ] },
+      { name:'EQ 3', custom:true, bands:[ 1.5,1,.5,0,.5,1,2,1.5,.5,0 ] },
+      { name:'EQ 4', custom:true, bands:[ -1.5,0,1,2,1.5,.5,0,-.5,-1,-2 ] },
+    ]);
+    const presetIdx = ref(0);
+    const shownBands = ref([...presets.value[0].bands]);
+    const isCustom = computed(()=> !!presets.value[presetIdx.value].custom);
+
+    let raf=null;
+    function selectPreset(i){
+      presetIdx.value=i;
+      const from=[...shownBands.value], to=presets.value[i].bands;
+      const start=performance.now(), dur=380;
+      cancelAnimationFrame(raf);
+      const step=t=>{
+        let p=Math.min(1,(t-start)/dur); p=1-Math.pow(1-p,3);
+        shownBands.value=from.map((v,k)=>v+(to[k]-v)*p);
+        if(p<1) raf=requestAnimationFrame(step);
+      };
+      raf=requestAnimationFrame(step);
+    }
+
+    /* geometria */
+    const disp=ref(null), eqSvg=ref(null), cv=ref(null);
+    const W=ref(900), H=ref(300);
+    const dbScale=ref(15);
+    const zero=computed(()=> (H.value-16)/2 + 4);
+    const bx=i=> 14 + i*(W.value-28)/9;
+    const by=v=> zero.value - v*dbScale.value;
+    const curvePath=computed(()=>{
+      const pts=shownBands.value.map((v,i)=>[bx(i),by(v)]);
+      let d=`M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+      for(let i=0;i<pts.length-1;i++){
+        const [x0,y0]=pts[Math.max(i-1,0)],[x1,y1]=pts[i],[x2,y2]=pts[i+1],[x3,y3]=pts[Math.min(i+2,pts.length-1)];
+        d+=` C ${(x1+(x2-x0)/6).toFixed(1)} ${(y1+(y2-y0)/6).toFixed(1)}, ${(x2-(x3-x1)/6).toFixed(1)} ${(y2-(y3-y1)/6).toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+      }
+      return d;
+    });
+
+    const dragIdx=ref(-1);
+    function eqStart(e,i){ if(!isCustom.value) return; dragIdx.value=i; e.target.setPointerCapture?.(e.pointerId); }
+    function eqMove(e){
+      if(dragIdx.value<0) return;
+      const r=eqSvg.value.getBoundingClientRect();
+      const yv=(e.clientY-r.top)/r.height*H.value;
+      let v=Math.max(-8,Math.min(8,(zero.value-yv)/dbScale.value));
+      presets.value[presetIdx.value].bands[dragIdx.value]=Math.round(v*2)/2;
+      shownBands.value=[...presets.value[presetIdx.value].bands];
+    }
+    function eqEnd(){ dragIdx.value=-1; }
+    const fmtDb=v=> (v>0?'+':'')+v.toFixed(1)+' dB';
+    const platformLabel=computed(()=>({xbox:'XBOX',ps:'PLAYSTATION',nintendo:'NINTENDO'}[platform.value]));
+
+    /* subtelne widmo — cienka linia mono */
+    let animId=null, ro=null;
+    function eqGainAt(f){
+      const pos=f*9, i=Math.min(8,Math.floor(pos)), t=pos-i;
+      const db=shownBands.value[i]*(1-t)+shownBands.value[i+1]*t;
+      return Math.pow(10, db/30);
+    }
+    onMounted(()=>{
+      const c=cv.value, ctx=c.getContext('2d');
+      const resize=()=>{
+        const r=disp.value.getBoundingClientRect(), d=window.devicePixelRatio||1;
+        c.width=r.width*d; c.height=r.height*d; ctx.setTransform(d,0,0,d,0,0);
+        W.value=Math.round(r.width); H.value=Math.round(r.height);
+        dbScale.value=Math.max(10,(H.value-40)/2/8);
+      };
+      resize();
+      ro=new ResizeObserver(resize); ro.observe(disp.value);
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const N=140;
+      const loop=t=>{
+        const w=W.value,h=H.value,floor=h-24;
+        ctx.clearRect(0,0,w,h);
+        // pseudo-muzyka: "stopa" ~126 BPM w basie + transjenty w górze pasma
+        const beat=Math.pow(Math.max(0,Math.sin(t*.0132)),8);          // puls basu
+        const snare=Math.pow(Math.max(0,Math.sin(t*.0066+2.1)),14)*.7; // werbel co 2. bit
+        ctx.beginPath();
+        for(let i=0;i<=N;i++){
+          const f=i/N;
+          const pink=.5-f*.3;
+          const wob=.45+.2*Math.sin(t*.0014+f*8)+.12*Math.sin(t*.0033+f*21)+.08*Math.sin(t*.0008+f*47);
+          const kick=beat*Math.exp(-f*9)*.85;                 // bas skacze nisko
+          const hat=snare*Math.exp(-Math.pow((f-.62)*4,2))*.5 // werbel/wokal w środku
+                   + beat*.18*Math.exp(-Math.pow((1-f)*5,2)); // iskra w górze
+          let edge=Math.min(1,f/.08,(1-f)/.08);               // roll-off na krawędziach
+          edge=edge*edge*(3-2*edge);                          // smoothstep
+          const amp=Math.min(1,Math.max(.015,(pink*wob+kick+hat)*eqGainAt(f)*edge));
+          const x=14+f*(w-28), y=floor-amp*(floor-16);
+          i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.strokeStyle='rgba(245,245,243,.13)';
+        ctx.lineWidth=1;
+        ctx.stroke();
+        animId=requestAnimationFrame(loop);
+      };
+      animId=requestAnimationFrame(loop);
+    });
+    onBeforeUnmount(()=>{ cancelAnimationFrame(animId); ro?.disconnect(); });
+
+    const hoursLeft=computed(()=>Math.round(80*battery.value/100));
+    const mix=computed(()=>{
+      const c=chatmix.value;
+      return { game:c<=10?100:Math.round((20-c)/10*100), chat:c>=10?100:Math.round(c/10*100) };
+    });
+
+    return { platform,battery,sidetone,chatmix,noiseFilter,voicePrompts,micMuted,autoOff,stepOff,
+             freqs,presets,presetIdx,shownBands,isCustom,selectPreset,
+             disp,eqSvg,cv,W,H,zero,bx,by,curvePath,eqStart,eqMove,eqEnd,hoursLeft,mix,
+             dragIdx,fmtDb,platformLabel };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
