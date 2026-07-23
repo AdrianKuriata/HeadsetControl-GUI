@@ -12,8 +12,12 @@ and in the repo (issues, PRs, commits, code, comments, docs) is in English.
 ## Sources of truth
 
 - `docs/PROJECT.md` — the spec (Polish): vision, design system, architecture, standards,
-  decision log. **Read it before any implementation work.** New decisions go into its
-  "Dziennik decyzji" (§10) table.
+  **product** decision log. **Read it before any implementation work.** Product decisions
+  go into its "Dziennik decyzji" (§10) table.
+- `docs/architecture/` — living technical docs (English); `docs/architecture/README.md`
+  holds the map and the maintenance rules. `docs/decisions/` — ADRs for technical
+  decisions (Nygard format; see its README for the template and the product/technical
+  split).
 - **Backlog: this repository's GitHub issues** (`gh issue list`), milestones `M0` → `M4+`
   (roadmap order). Issues are numbered in dependency order.
 - `docs/maxwell-control-mono.html` — approved visual reference (single-file Vue 3 mock:
@@ -65,17 +69,26 @@ All gates green locally — do not push red and let CI find it (wastes the user'
   if it doesn't depend on the open PR; otherwise branch from the PR branch and note the
   merge order in the PR titles.
 
-### 6. After the task
+### 6. After the task — documentation (MANDATORY, every task)
+Before opening the PR, run this docs checklist — a PR without it is not done:
+- **`docs/architecture/`**: did the change touch an area described there (or an area
+  whose file is planned in its map)? Update/create that file **in the same PR**.
+  Map + rules: `docs/architecture/README.md`.
+- **Decisions**: **product** decision → row in PROJECT.md §10 (PL); **technical**
+  decision → new ADR in `docs/decisions/` (EN). Split defined in
+  `docs/decisions/README.md`.
 - Implementation diverged from the issue description? Update the issue (`gh issue edit`).
-- Architectural decision made along the way? Add a row to PROJECT.md §10.
 - New seam, module, or convention future work must know about? Update this file's
   Architecture section — keep it terse.
+- Nothing to update? State that explicitly in the PR body ("Docs: no impact — <why>").
 
 ### Definition of Done
 1. All acceptance criteria in the issue checked off.
 2. All local gates green (step 4); CI green on the PR.
 3. Coverage thresholds met (PROJECT.md §4: 100% logic layers, 90% UI components).
-4. Docs updated where relevant (issue, PROJECT.md §10, this file).
+4. Docs checklist from step 6 completed: `docs/architecture/` files for touched areas,
+   ADR for technical decisions, PROJECT.md §10 for product decisions, issue, this file —
+   or an explicit "Docs: no impact" note in the PR body.
 5. PR open with `Closes #<n>` — awaiting the user's review.
 
 ### When to ask the user (only these)
