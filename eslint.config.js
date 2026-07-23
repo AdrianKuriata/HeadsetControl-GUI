@@ -32,7 +32,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["*.config.{js,ts}", "*.config.*.{js,ts}"],
+    files: ["*.config.{js,ts}", "*.config.*.{js,ts}", "scripts/**/*.{js,mjs}"],
     languageOptions: {
       globals: globals.node,
     },

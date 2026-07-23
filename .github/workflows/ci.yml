@@ -1,0 +1,67 @@
+name: CI
+
+# lint → test → build (PROJECT.md §5). Every job runs the same `make` targets a
+# developer runs locally, so CI and the local gate cannot drift apart.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          rust-components: rustfmt, clippy
+      - run: make lint
+
+  test:
+    name: Test & coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          rust-components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - run: make coverage
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      # Compile-only: bundling into deb/rpm/AppImage is the release workflow's
+      # job (#21), and it does not add signal to a per-PR gate.
+      - run: make build-ci
+
+  commits:
+    name: Commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # The husky commit-msg hook can be bypassed with --no-verify; this cannot.
+      - run: make commitlint COMMITLINT_FROM=${{ github.event.pull_request.base.sha }} COMMITLINT_TO=${{ github.event.pull_request.head.sha }}

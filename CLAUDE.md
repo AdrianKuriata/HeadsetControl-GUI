@@ -110,8 +110,10 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 | Install deps | `make setup` |
 | Run app (dev) | `make dev` |
 | Production build | `make build` |
+| Compile-only build (CI gate) | `make build-ci` |
 | Regenerate `types.gen.ts` | `make gen` |
 | Full local gate (pre-push) | `make ci` |
+| Unit/component tests | `make test` (no thresholds) / `make coverage` (with) |
 | Frontend gates | `make fe-check` (lint, typecheck, coverage) |
 | Rust gates | `make rs-check` (fmt, clippy, coverage) |
 | E2E (MockBackend) | `make fe-e2e` |
@@ -121,6 +123,11 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 Style is enforced, not negotiated: ESLint + Prettier (code only — Markdown is excluded),
 `rustfmt.toml` + clippy `-D warnings`, commitlint in a husky `commit-msg` hook
 ([ADR 0003](docs/decisions/0003-lint-and-format-toolchain.md)).
+
+CI (`.github/workflows/ci.yml`) runs those same `make` targets — lint → test → build —
+so anything green locally is green there. Tests are `*.spec.ts` next to the code;
+coverage thresholds are per glob in `vitest.config.ts`, the Rust gate is
+`scripts/rs-coverage-gate.mjs` ([ADR 0004](docs/decisions/0004-ci-gates-and-coverage-enforcement.md)).
 
 ## Working rules
 
