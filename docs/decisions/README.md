@@ -44,3 +44,4 @@ Routine implementation choices that follow the spec need no ADR.
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| [0002](0002-exec-headsetcontrol-from-rust.md) | Execute headsetcontrol from Rust, without the Tauri shell plugin | Accepted |

@@ -13,6 +13,7 @@ without reverse-engineering the code. Reference for facts, code for truth.
 | [design-system.md](design-system.md) | UI layer: tokens, H-components, platform accents | issues #6/#15 |
 | [capabilities.md](capabilities.md) | Business logic: capability → UI, profiles, variants | issues #8/#11/#12/#17 |
 | [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | issues #3/#13/#14 |
+| [security.md](security.md) | Tauri ACL, CSP, hardware-safety boundary | done (#1), updater in #22 |
 
 ## Rules for maintaining these docs
 
