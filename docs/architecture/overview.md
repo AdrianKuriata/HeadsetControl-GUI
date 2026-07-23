@@ -58,6 +58,8 @@ flowchart LR
   optional `variants: { [pid]: platform }` map driving platform accent colors.
 - `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout);
   features never use raw inputs.
+- `i18n/` — vue-i18n (pl + en, en fallback); every user-facing string is a
+  catalog key, enforced by the `vue/no-bare-strings-in-template` lint rule.
 - `features/` — one capability = one component; `features/registry.ts` maps
   capability → component (OCP). Unknown capability: logged and ignored.
 

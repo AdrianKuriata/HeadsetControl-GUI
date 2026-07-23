@@ -24,6 +24,12 @@ export default defineConfig(
     languageOptions: {
       parserOptions: { parser: tseslint.parser },
     },
+    rules: {
+      // No user-facing string literals in templates — everything goes through
+      // vue-i18n (issue #7 acceptance criterion). Technical constants (paths,
+      // commands, capability ids) render via interpolation and are not flagged.
+      "vue/no-bare-strings-in-template": "error",
+    },
   },
   {
     files: ["src/**/*.{ts,vue}"],

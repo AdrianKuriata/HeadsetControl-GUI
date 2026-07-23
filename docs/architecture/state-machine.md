@@ -1,7 +1,8 @@
 # Application state machine
 
-> **Status:** specified (PROJECT.md §3.3). Implementation lands with issue #5
-> (screens for binary states: #9) — reconcile this doc in those PRs.
+> **Status:** implemented (#5). The `checking-binary` probe is still a
+> placeholder — real binary/version/permission detection lands with #9, and the
+> `ready` screen becomes the real configurator with #12.
 
 The app is an **explicit** state machine; every state has its own full screen.
 No screen ever renders partial/undefined state.
@@ -55,6 +56,19 @@ These do **not** change the app state:
 
 ## Where it lives
 
-The machine and its screens belong to `src/App.vue`; state screens are the only
-place OS-specific *content* (e.g. distro-specific install instructions, udev
-rules) is allowed on the frontend.
+- [`src/core/state-machine.ts`](../../src/core/state-machine.ts) — `AppState`,
+  `AppEvent` and the pure `transition(state, event)`. All the logic, none of the
+  rendering.
+- [`src/core/probe.ts`](../../src/core/probe.ts) — the startup probe. Until #9 it
+  asks the backend for devices and reports every failure as `missing-binary`.
+- [`src/screens/`](../../src/screens/) — one component per state, mapped by
+  `screens/registry.ts` (`SCREENS` + `screenProps`). Screens are the only place
+  OS-specific *content* (distro install instructions, udev rules) is allowed on
+  the frontend. All copy comes from vue-i18n (`src/i18n/`), never literals
+  ([ADR 0007](../decisions/0007-i18n-vue-i18n.md)).
+- [`src/App.vue`](../../src/App.vue) — holds the current state, dispatches
+  events (probe result, hotplug, retry) and renders `<component :is>`. It
+  decides nothing itself.
+
+Adding a state = a variant in `AppState`, a screen component, one registry entry
+— no edit to `App.vue` (ADR [0006](../decisions/0006-app-state-machine.md)).

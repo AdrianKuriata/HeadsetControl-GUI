@@ -143,6 +143,10 @@ coverage thresholds are per glob in `vitest.config.ts`, the Rust gate is
   `<button>` in features; missing a prop → extend the H-component, don't bypass it.
   No AI-slop: no gradients, no emoji in UI, no fonts outside Inter Tight + IBM Plex Mono.
   The mock is the design authority.
+- **i18n** — every user-facing string is a vue-i18n key in `src/i18n/messages.ts`
+  (pl + en), never a literal; `vue/no-bare-strings-in-template` fails the build otherwise.
+  Sentences with markup use `<I18nT>`; technical constants render via interpolation.
+  [ADR 0007](docs/decisions/0007-i18n-vue-i18n.md).
 
 ## Architecture (as specified)
 
