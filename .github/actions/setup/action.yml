@@ -17,14 +17,25 @@ runs:
     # ~2 s against ~13 s of `apt-get update` + download, so the win is ~10 s per
     # job — the bigger reason is that CI stops depending on apt mirrors being
     # reachable. Unpacking (~15 s) happens either way. The key carries the runner
-    # image version, so a new image (different set of preinstalled packages)
-    # refills the cache instead of installing an incomplete set.
+    # image version, because `--download-only` fetches just the packages missing
+    # from *that* image: on a new image the cached set would be incomplete, and it
+    # has to be refilled rather than reused.
+    # `ImageOS`/`ImageVersion` are shell variables on the runner, not part of the
+    # `env` expression context — reading them in `key:` yields empty strings, so
+    # the key is built in a step where they actually exist.
+    - name: Compute the package cache key
+      id: apt-key
+      shell: bash
+      run: |
+        hash=$(sha256sum .github/actions/setup/packages.txt | cut -d' ' -f1)
+        echo "key=apt-${ImageOS:-unknown}-${ImageVersion:-unknown}-${hash}" >>"$GITHUB_OUTPUT"
+
     - name: Restore system packages
       id: apt-cache
       uses: actions/cache@v4
       with:
         path: ~/apt-packages
-        key: apt-${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles('.github/actions/setup/packages.txt') }}
+        key: ${{ steps.apt-key.outputs.key }}
 
     - name: Download system packages
       if: steps.apt-cache.outputs.cache-hit != 'true'
