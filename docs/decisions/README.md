@@ -49,3 +49,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0004](0004-ci-gates-and-coverage-enforcement.md) | CI gates: Makefile targets, a scripted Rust coverage gate, Dependabot | Accepted |
 | [0005](0005-frontend-backend-contract.md) | The frontend/backend contract: generated types, one IPC module, a scripted mock | Accepted |
 | [0006](0006-app-state-machine.md) | The app state machine: pure transitions, screens as data, a placeholder probe | Accepted |
+| [0007](0007-i18n-vue-i18n.md) | Internationalization: vue-i18n from the start, Composition mode, a lint gate | Accepted |

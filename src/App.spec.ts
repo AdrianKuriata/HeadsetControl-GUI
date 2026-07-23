@@ -1,15 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { flushPromises, mount } from "@vue/test-utils";
+import { flushPromises } from "@vue/test-utils";
 
 import App from "./App.vue";
 import { MOCK_BACKEND_FLAG, createBackend, resetBackend } from "./core/create-backend";
 import type { MockBackend } from "./core/mock-backend";
 import { MAXWELL2_XBOX } from "./core/mock-backend";
+import { mountWithI18n } from "./test-support";
 
 /** The backend the app will pick up, scripted before it boots. */
 function scriptedBackend(): MockBackend {
   vi.stubEnv("VITE_BACKEND", MOCK_BACKEND_FLAG);
   return createBackend() as MockBackend;
+}
+
+function mountApp() {
+  return mountWithI18n(App).wrapper;
 }
 
 describe("App", () => {
@@ -21,13 +26,13 @@ describe("App", () => {
   it("shows the startup probe before anything is known", () => {
     scriptedBackend();
 
-    expect(mount(App).text()).toContain("Checking headsetcontrol");
+    expect(mountApp().text()).toContain("Checking headsetcontrol");
   });
 
   it("shows the connected device once the probe finishes", async () => {
     scriptedBackend();
 
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     expect(app.text()).toContain(MAXWELL2_XBOX.name);
@@ -37,7 +42,7 @@ describe("App", () => {
     const backend = scriptedBackend();
     backend.setDevices([]);
 
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     expect(app.text()).toContain("No headset connected");
@@ -45,7 +50,7 @@ describe("App", () => {
 
   it("dims the device when it is unplugged", async () => {
     const backend = scriptedBackend();
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     backend.setDevices([]);
@@ -56,7 +61,7 @@ describe("App", () => {
 
   it("returns to the device by itself when it comes back", async () => {
     const backend = scriptedBackend();
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     backend.setDevices([]);
@@ -72,7 +77,7 @@ describe("App", () => {
     const backend = scriptedBackend();
     backend.fail("listDevices", { kind: "error", error: { kind: "not_implemented" } });
 
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
     expect(app.text()).toContain("headsetcontrol not found");
 
@@ -85,7 +90,7 @@ describe("App", () => {
 
   it("keeps the current screen when a hotplug refresh fails", async () => {
     const backend = scriptedBackend();
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     backend.fail("listDevices", { kind: "error", error: { kind: "failed", message: "gone" } });
@@ -97,7 +102,7 @@ describe("App", () => {
 
   it("stops listening for hotplug once unmounted", async () => {
     const backend = scriptedBackend();
-    const app = mount(App);
+    const app = mountApp();
     await flushPromises();
 
     app.unmount();

@@ -1,15 +1,24 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
+import { I18nT } from "vue-i18n";
+
+// The name of the CLI this app wraps — a proper noun, interpolated so it stays
+// out of the translated sentence and out of the no-bare-strings lint.
+const TOOL = "headsetcontrol";
+
+const { t } = useI18n({ useScope: "global" });
+
 defineEmits<{ retry: [] }>();
 </script>
 
 <template>
   <section class="screen">
-    <h1>headsetcontrol not found</h1>
-    <p>
-      This app is a GUI over the
-      <code>headsetcontrol</code> command-line tool. Install it, then check again. Per-distribution
-      instructions arrive with binary detection (#9).
-    </p>
-    <button type="button" @click="$emit('retry')">Check again</button>
+    <h1>{{ t("screens.missingBinary.title") }}</h1>
+    <I18nT keypath="screens.missingBinary.body" tag="p" scope="global">
+      <template #tool
+        ><code>{{ TOOL }}</code></template
+      >
+    </I18nT>
+    <button type="button" @click="$emit('retry')">{{ t("common.checkAgain") }}</button>
   </section>
 </template>

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mount } from "@vue/test-utils";
 
 import { MAXWELL2_XBOX } from "../core/mock-backend";
 import type { AppState } from "../core/state-machine";
+import { mountWithI18n } from "../test-support";
 import { SCREENS, screenProps } from "./registry";
 
 const STATES: AppState[] = [
@@ -17,9 +17,9 @@ const STATES: AppState[] = [
 
 describe("the screen registry", () => {
   it.each(STATES)("renders $kind with the props that state carries", (state) => {
-    const screen = mount(SCREENS[state.kind], { props: screenProps(state) });
+    const { wrapper } = mountWithI18n(SCREENS[state.kind], { props: screenProps(state) });
 
-    expect(screen.find("section").exists()).toBe(true);
+    expect(wrapper.find("section").exists()).toBe(true);
   });
 
   it("hands the device to the screens that show one", () => {

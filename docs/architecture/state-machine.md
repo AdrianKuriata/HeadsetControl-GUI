@@ -64,7 +64,8 @@ These do **not** change the app state:
 - [`src/screens/`](../../src/screens/) — one component per state, mapped by
   `screens/registry.ts` (`SCREENS` + `screenProps`). Screens are the only place
   OS-specific *content* (distro install instructions, udev rules) is allowed on
-  the frontend.
+  the frontend. All copy comes from vue-i18n (`src/i18n/`), never literals
+  ([ADR 0007](../decisions/0007-i18n-vue-i18n.md)).
 - [`src/App.vue`](../../src/App.vue) — holds the current state, dispatches
   events (probe result, hotplug, retry) and renders `<component :is>`. It
   decides nothing itself.
