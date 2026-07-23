@@ -83,11 +83,17 @@ local gate cannot drift. The shared prelude for the Rust-side jobs — Tauri's L
 packages, Node with npm cache, Rust with `Swatinem/rust-cache` — lives in
 [`.github/actions/setup`](../../.github/actions/setup/action.yml).
 
-The split exists because the two stacks have wildly different fixed costs: the
-whole frontend gate takes a few seconds and needs nothing installed, while
-anything touching Rust first pays ~1 min of `apt-get` for WebKit and (on a cold
-cache) compiles the Tauri dependency tree. Mixing them into one "lint" job made a
-frontend-only PR wait minutes for an answer it could have had in seconds.
+The split exists because the two stacks have wildly different fixed costs. The
+whole frontend gate takes seconds and needs nothing installed; anything touching
+Rust first spends ~50 s setting up (WebKit packages, toolchain, cache restore)
+before it compiles. Measured on a warm cache: Frontend ~16 s, Rust ~85 s (of
+which `make rs-check` is ~25 s), Build ~95 s. On a cold cache the two Rust jobs
+take 3–4 min because the whole Tauri dependency tree is compiled.
+
+Two caches carry that: `Swatinem/rust-cache` for `~/.cargo` and
+`src-tauri/target`, and an `actions/cache` entry for the `.deb` files. **The
+rust-cache key includes the job name** — renaming a CI job silently costs a full
+cold rebuild until it repopulates.
 
 `make build-ci` compiles the app without producing deb/rpm/AppImage artifacts;
 bundling belongs to the release workflow (#21).

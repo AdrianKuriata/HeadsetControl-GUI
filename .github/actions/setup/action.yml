@@ -13,10 +13,12 @@ runs:
   using: composite
   steps:
     # Tauri 2 prerequisites for Linux — https://tauri.app/start/prerequisites/
-    # The .deb files are cached: downloading them costs ~40 s per job, restoring
-    # them a few seconds. The key carries the runner image version, so a new
-    # image (different set of preinstalled packages) refills the cache instead of
-    # installing an incomplete set.
+    # The .deb files are cached. Measured on ubuntu-24.04: restoring 59 MB takes
+    # ~2 s against ~13 s of `apt-get update` + download, so the win is ~10 s per
+    # job — the bigger reason is that CI stops depending on apt mirrors being
+    # reachable. Unpacking (~15 s) happens either way. The key carries the runner
+    # image version, so a new image (different set of preinstalled packages)
+    # refills the cache instead of installing an incomplete set.
     - name: Restore system packages
       id: apt-cache
       uses: actions/cache@v4
