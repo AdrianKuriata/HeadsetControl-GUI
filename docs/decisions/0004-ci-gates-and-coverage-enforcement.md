@@ -21,11 +21,18 @@ thresholds enforced from day one (issue #3). Three details needed deciding:
 
 ## Decision
 
-- **CI jobs call `make` targets** — `make lint`, `make coverage`, `make build-ci`,
-  `make commitlint` — never raw npm/cargo commands. The Makefile stays the single
-  command interface for humans, agents and CI. The shared setup (Tauri's Linux
-  packages, Node, Rust, caches) is a local composite action,
-  `.github/actions/setup`.
+- **CI jobs call `make` targets** — `make fe-check`, `make rs-check`,
+  `make build-ci`, `make commitlint` — never raw npm/cargo commands. The Makefile
+  stays the single command interface for humans, agents and CI. The shared setup
+  for the Rust-side jobs (Tauri's Linux packages, Node, Rust, caches) is a local
+  composite action, `.github/actions/setup`.
+- **Jobs are split by stack, not by stage** (frontend / Rust / build), all in
+  parallel. The stages differ by two orders of magnitude in fixed cost: the entire
+  frontend gate runs in seconds with nothing installed, while any Rust job first
+  spends ~1 min installing WebKit packages and, cold, compiles the whole Tauri
+  dependency tree before linting a single line. A stage-shaped pipeline made a
+  frontend-only PR wait minutes for a three-second answer, and serialising the
+  build behind the checks added its wall-clock on top for no extra signal.
 - **CI builds compile-only**: `make build-ci` runs `tauri build --no-bundle`.
   Producing deb/rpm/AppImage artifacts is the release workflow's job (#21) and
   adds minutes without adding signal to a per-PR gate.

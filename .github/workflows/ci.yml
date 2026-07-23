@@ -1,7 +1,9 @@
 name: CI
 
-# lint → test → build (PROJECT.md §5). Every job runs the same `make` targets a
-# developer runs locally, so CI and the local gate cannot drift apart.
+# lint → test → build (PROJECT.md §5), split by stack rather than by stage: a
+# frontend-only PR gets its answer in well under a minute instead of waiting for
+# WebKit packages and a Tauri dependency tree to compile. Every job runs the same
+# `make` target a developer runs locally, so CI and the local gate cannot drift.
 
 on:
   push:
@@ -16,38 +18,44 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  frontend:
+    name: Frontend
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@v7
         with:
-          rust-components: rustfmt, clippy
-      - run: make lint
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # ESLint + Prettier + vue-tsc + Vitest with coverage thresholds. No Rust,
+      # no system packages — this is the fast signal.
+      - run: make fe-check
 
-  test:
-    name: Test & coverage
+  rust:
+    name: Rust
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
         with:
-          rust-components: llvm-tools-preview
+          rust-components: rustfmt, clippy, llvm-tools-preview
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov
-      - run: make coverage
+      # rustfmt + clippy + the coverage gate.
+      - run: make rs-check
 
   build:
     name: Build
     runs-on: ubuntu-24.04
-    needs: [lint, test]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       # Compile-only: bundling into deb/rpm/AppImage is the release workflow's
-      # job (#21), and it does not add signal to a per-PR gate.
+      # job (#21) and adds no signal to a per-PR gate. Runs in parallel with the
+      # checks above — a release build is the long pole, so serialising it behind
+      # them would only add its wall-clock to theirs.
       - run: make build-ci
 
   commits:

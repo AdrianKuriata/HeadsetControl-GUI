@@ -69,14 +69,28 @@ checked as the stable equivalent.
 ## CI
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on every PR and
-on `main`: **lint → test → build**, plus a commit-message job. Each job calls the
-same `make` target a developer runs locally (`make lint`, `make coverage`,
-`make build-ci`), so CI and the local gate cannot drift. The shared prelude —
-Tauri's Linux packages, Node with npm cache, Rust with `Swatinem/rust-cache` —
-lives in [`.github/actions/setup`](../../.github/actions/setup/action.yml).
+on `main`. Jobs are split **by stack, not by stage**, and run in parallel:
 
-`make build-ci` compiles the app (`tauri build --no-bundle`) without producing
-deb/rpm/AppImage artifacts; bundling belongs to the release workflow (#21).
+| Job | Runs | Needs |
+|---|---|---|
+| Frontend | `make fe-check` — ESLint, Prettier, vue-tsc, Vitest + thresholds | Node only |
+| Rust | `make rs-check` — rustfmt, clippy, coverage gate | Node, Rust, WebKit packages |
+| Build | `make build-ci` — `tauri build --no-bundle` | Node, Rust, WebKit packages |
+| Commit messages | `make commitlint` over the PR's commit range | Node only |
+
+Every job calls the same `make` target a developer runs locally, so CI and the
+local gate cannot drift. The shared prelude for the Rust-side jobs — Tauri's Linux
+packages, Node with npm cache, Rust with `Swatinem/rust-cache` — lives in
+[`.github/actions/setup`](../../.github/actions/setup/action.yml).
+
+The split exists because the two stacks have wildly different fixed costs: the
+whole frontend gate takes a few seconds and needs nothing installed, while
+anything touching Rust first pays ~1 min of `apt-get` for WebKit and (on a cold
+cache) compiles the Tauri dependency tree. Mixing them into one "lint" job made a
+frontend-only PR wait minutes for an answer it could have had in seconds.
+
+`make build-ci` compiles the app without producing deb/rpm/AppImage artifacts;
+bundling belongs to the release workflow (#21).
 
 ## Commands
 
