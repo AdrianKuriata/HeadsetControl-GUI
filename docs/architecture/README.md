@@ -6,20 +6,21 @@ without reverse-engineering the code. Reference for facts, code for truth.
 
 ## Map
 
-| File | Covers | Lands with |
+| File | Covers | Implementation |
 |---|---|---|
-| [overview.md](overview.md) | System map: layers, seams, data flow | exists |
-| state-machine.md | App state machine, one screen per state | issue #5 |
-| design-system.md | UI layer: tokens, H-components, platform accents | issue #6 |
-| capabilities.md | Business logic: capability → UI, profiles, variants | issue #12 |
-| testing.md | Test pyramid, contract fixtures, MockBackend, coverage | issues #3/#13 |
-
-Files that don't exist yet are **planned** — see the growth rule below.
+| [overview.md](overview.md) | System map: layers, seams, data flow | in progress (M0–M1) |
+| [state-machine.md](state-machine.md) | App state machine, one screen per state | issues #5/#9 |
+| [design-system.md](design-system.md) | UI layer: tokens, H-components, platform accents | issues #6/#15 |
+| [capabilities.md](capabilities.md) | Business logic: capability → UI, profiles, variants | issues #8/#11/#12/#17 |
+| [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | issues #3/#13/#14 |
 
 ## Rules for maintaining these docs
 
-1. **Growth rule:** a file is created together with the area it describes, in the
-   same PR — never ahead of the code. The table above says which issue creates what.
+1. **Spec-first, then reconciled:** everything derivable from the approved spec
+   (PROJECT.md) and the mock is documented up front, marked with a `Status` note
+   naming the implementing issues. The PR that implements an area **must**
+   reconcile its doc with reality and drop the note. New areas invented later
+   get their file in the PR that builds them.
 2. **Living docs:** updating the relevant file here is part of every issue's
    Definition of Done (see [CLAUDE.md](../../CLAUDE.md)). A PR that changes an
    area's behavior updates that area's doc in the same PR.

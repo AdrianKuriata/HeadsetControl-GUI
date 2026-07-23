@@ -58,7 +58,7 @@ flowchart LR
 
 `checking-binary → missing-binary | bad-version | no-permissions(udev) |
 no-device | ready(device) | device-lost` — each state has its own screen.
-Details land in `state-machine.md` (issue #5).
+Details: [state-machine.md](state-machine.md).
 
 ## Extensibility in practice
 
