@@ -90,10 +90,12 @@ before it compiles. Measured on a warm cache: Frontend ~16 s, Rust ~85 s (of
 which `make rs-check` is ~25 s), Build ~95 s. On a cold cache the two Rust jobs
 take 3–4 min because the whole Tauri dependency tree is compiled.
 
-Two caches carry that: `Swatinem/rust-cache` for `~/.cargo` and
-`src-tauri/target`, and an `actions/cache` entry for the `.deb` files. **The
-rust-cache key includes the job name** — renaming a CI job silently costs a full
-cold rebuild until it repopulates.
+Two caches carry that: npm via `actions/setup-node`, and `~/.cargo` plus
+`src-tauri/target` via `Swatinem/rust-cache`. **The rust-cache key includes the
+job name** — renaming a CI job silently costs a full cold rebuild until it
+repopulates. The WebKit packages are installed fresh each run on purpose: caching
+the `.deb` files was measured at ~10 s saved per job, which did not pay for the
+extra machinery.
 
 `make build-ci` compiles the app without producing deb/rpm/AppImage artifacts;
 bundling belongs to the release workflow (#21).

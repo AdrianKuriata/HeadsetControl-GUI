@@ -13,53 +13,22 @@ runs:
   using: composite
   steps:
     # Tauri 2 prerequisites for Linux — https://tauri.app/start/prerequisites/
-    # The .deb files are cached. Measured on ubuntu-24.04: restoring 59 MB takes
-    # ~2 s against ~13 s of `apt-get update` + download, so the win is ~10 s per
-    # job — the bigger reason is that CI stops depending on apt mirrors being
-    # reachable. Unpacking (~15 s) happens either way. The key carries the runner
-    # image version, because `--download-only` fetches just the packages missing
-    # from *that* image: on a new image the cached set would be incomplete, and it
-    # has to be refilled rather than reused.
-    # `ImageOS`/`ImageVersion` are shell variables on the runner, not part of the
-    # `env` expression context — reading them in `key:` yields empty strings, so
-    # the key is built in a step where they actually exist.
-    - name: Compute the package cache key
-      id: apt-key
+    # Deliberately a plain install: caching the .debs saved ~10 s per job (the
+    # download is fast; unpacking is the real cost and happens either way), which
+    # did not justify the extra moving parts.
+    - name: Install system dependencies
       shell: bash
       run: |
-        hash=$(sha256sum .github/actions/setup/packages.txt | cut -d' ' -f1)
-        echo "key=apt-${ImageOS:-unknown}-${ImageVersion:-unknown}-${hash}" >>"$GITHUB_OUTPUT"
-
-    - name: Restore system packages
-      id: apt-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/apt-packages
-        key: ${{ steps.apt-key.outputs.key }}
-
-    - name: Download system packages
-      if: steps.apt-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: |
-        mkdir -p ~/apt-packages/partial
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends --download-only \
-          -o Dir::Cache::archives="$HOME/apt-packages" \
-          $(grep -v '^#' .github/actions/setup/packages.txt | tr '\n' ' ')
-        sudo chown -R "$USER" ~/apt-packages
-
-    - name: Install system packages
-      shell: bash
-      run: |
-        packages=$(grep -v '^#' .github/actions/setup/packages.txt | tr '\n' ' ')
-        if ! sudo dpkg --install --auto-deconfigure ~/apt-packages/*.deb; then
-          # Never let the cache optimisation break the build: fall back to a
-          # plain install (e.g. if the cached set went stale against a new
-          # runner image in a way the cache key did not catch).
-          echo "::warning::cached .deb set incomplete, installing from the network"
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends $packages
-        fi
+        sudo apt-get install -y --no-install-recommends \
+          build-essential \
+          file \
+          libayatana-appindicator3-dev \
+          librsvg2-dev \
+          libssl-dev \
+          libwebkit2gtk-4.1-dev \
+          libxdo-dev \
+          patchelf
 
     - uses: actions/setup-node@v7
       with:
