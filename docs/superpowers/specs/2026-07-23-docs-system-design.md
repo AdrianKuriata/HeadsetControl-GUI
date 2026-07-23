@@ -36,8 +36,16 @@ docs/
 ```
 
 **Growth rule:** a documentation file is created together with the area it describes —
-`state-machine.md` with issue #5, `capabilities.md` with #12, `user/installation.md`
-with packaging (M3). No documentation written ahead of the code it documents.
+`state-machine.md` with issue #5, `design-system.md` with #6, `capabilities.md` with
+#12, `user/installation.md` with packaging (M3). No documentation written ahead of the
+code it documents.
+
+**`architecture/design-system.md`** (lands with issue #6) documents the UI layer:
+design tokens and their source (the HTML mock stays the visual authority — the doc
+explains mechanics, never duplicates values), the H-component catalog and when to use
+each, the platform-accent mechanism (`DeviceProfile.variants` → `[data-platform]` →
+CSS variables), and the hard rules (no gradients, no emoji, Inter Tight + IBM Plex
+Mono only).
 
 ## Conventions
 
