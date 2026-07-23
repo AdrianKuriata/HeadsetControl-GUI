@@ -22,7 +22,11 @@ project, and end users of the application.
 ## Target structure
 
 ```
+CONTRIBUTING.md             # EN, root — human contributor entry point: setup, make
+                            # targets, commit conventions, PR process (agent: CLAUDE.md)
 docs/
+├── README.md               # EN, map of docs/: what is PL vs EN, what fixtures/ and
+│                           # superpowers/specs/ are
 ├── PROJECT.md              # PL, owner's spec — unchanged (product decisions in §10)
 ├── architecture/           # EN, explanation — for contributors and the AI agent
 │   ├── README.md           # documentation map + meta-rules for maintaining docs
@@ -37,8 +41,10 @@ docs/
 
 **Growth rule:** a documentation file is created together with the area it describes —
 `state-machine.md` with issue #5, `design-system.md` with #6, `capabilities.md` with
-#12, `user/installation.md` with packaging (M3). No documentation written ahead of the
-code it documents.
+#12, `architecture/testing.md` (test pyramid, contract fixtures, MockBackend, coverage
+gates) with #3/#13, `user/installation.md` and `CHANGELOG.md` (Keep a Changelog
+format, SemVer) with packaging/release (M3, #21/#25). No documentation written ahead
+of the code it documents.
 
 **`architecture/design-system.md`** (lands with issue #6) documents the UI layer:
 design tokens and their source (the HTML mock stays the visual authority — the doc
@@ -68,9 +74,9 @@ Mono only).
 
 ## Scope
 
-**Now (issue #29, before issue #1):** directory skeleton, `architecture/README.md`
-(meta-rules), `overview.md` (condensed EN translation of PROJECT.md §3),
-`decisions/0001`, CLAUDE.md updates.
+**Now (issue #29, before issue #1):** directory skeleton, `CONTRIBUTING.md`,
+`docs/README.md`, `architecture/README.md` (meta-rules), `overview.md` (condensed EN
+translation of PROJECT.md §3), `decisions/0001`, CLAUDE.md updates.
 
 **Later:** organic growth per issue, enforced through the Definition of Done.
 
