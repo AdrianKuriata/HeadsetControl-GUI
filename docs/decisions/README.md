@@ -46,3 +46,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-exec-headsetcontrol-from-rust.md) | Execute headsetcontrol from Rust, without the Tauri shell plugin | Accepted |
 | [0003](0003-lint-and-format-toolchain.md) | Lint and format toolchain: ESLint flat config, Prettier for code only, commitlint | Accepted |
+| [0004](0004-ci-gates-and-coverage-enforcement.md) | CI gates: Makefile targets, a scripted Rust coverage gate, Dependabot | Accepted |

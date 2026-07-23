@@ -1,0 +1,75 @@
+name: CI
+
+# lint → test → build (PROJECT.md §5), split by stack rather than by stage: a
+# frontend-only PR gets its answer in well under a minute instead of waiting for
+# WebKit packages and a Tauri dependency tree to compile. Every job runs the same
+# `make` target a developer runs locally, so CI and the local gate cannot drift.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # ESLint + Prettier + vue-tsc + Vitest with coverage thresholds. No Rust,
+      # no system packages — this is the fast signal.
+      - run: make fe-check
+
+  rust:
+    name: Rust
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          rust-components: rustfmt, clippy, llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # rustfmt + clippy + the coverage gate.
+      - run: make rs-check
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      # Compile-only: bundling into deb/rpm/AppImage is the release workflow's
+      # job (#21) and adds no signal to a per-PR gate. Runs in parallel with the
+      # checks above — a release build is the long pole, so serialising it behind
+      # them would only add its wall-clock to theirs.
+      - run: make build-ci
+
+  commits:
+    name: Commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # The husky commit-msg hook can be bypassed with --no-verify; this cannot.
+      - run: make commitlint COMMITLINT_FROM=${{ github.event.pull_request.base.sha }} COMMITLINT_TO=${{ github.event.pull_request.head.sha }}

@@ -5,9 +5,13 @@
 CARGO := cargo --locked
 RS_MANIFEST := src-tauri/Cargo.toml
 
+# Commit range checked by `make commitlint`; CI overrides it with the PR's range.
+COMMITLINT_FROM ?= origin/main
+COMMITLINT_TO ?= HEAD
+
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev build gen \
+.PHONY: help setup dev build build-ci gen \
         fe-lint fe-typecheck fe-test fe-coverage fe-e2e fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
         commitlint format lint test coverage ci
@@ -26,6 +30,9 @@ dev: ## Run the app in development mode
 
 build: ## Production build (bundles via tauri)
 	npm run tauri build
+
+build-ci: ## Compile-only build gate (no deb/rpm/AppImage bundling)
+	npm run tauri build -- --no-bundle
 
 gen: ## Regenerate src/core/types.gen.ts from Rust (tauri-specta)
 	npm run gen
@@ -61,14 +68,14 @@ rs-test: ## cargo tests (incl. contract fixtures)
 	$(CARGO) test --manifest-path $(RS_MANIFEST)
 
 rs-coverage: ## cargo-llvm-cov with thresholds (100% parser/adapter/state machine)
-	$(CARGO) llvm-cov --manifest-path $(RS_MANIFEST) --fail-under-lines 100
+	node scripts/rs-coverage-gate.mjs
 
 rs-check: rs-fmt rs-lint rs-coverage ## All Rust gates
 
 ## ── Combined ────────────────────────────────────────────
 
 commitlint: ## Check this branch's commit messages (Conventional Commits)
-	npx --no -- commitlint --from origin/main --to HEAD
+	npx --no -- commitlint --from $(COMMITLINT_FROM) --to $(COMMITLINT_TO)
 
 
 format: ## Auto-format everything (prettier + rustfmt)

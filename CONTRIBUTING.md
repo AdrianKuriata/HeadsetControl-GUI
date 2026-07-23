@@ -36,6 +36,12 @@ Coverage thresholds are enforced in CI: 100% for logic layers (`core/`,
 `stores/`, `profiles/`, Rust parser/adapter/state machine), 90% for UI
 components. Tests come first — the project works TDD.
 
+Tests live next to the code they cover as `*.spec.ts` (Vitest + Vue Test Utils);
+`make test` runs them without thresholds, `make coverage` with. CI runs the same
+`make` targets — lint → test → build — see
+[docs/architecture/testing.md](docs/architecture/testing.md). `make ci` also runs
+the E2E suite, which lands with issue #13.
+
 ## Code style
 
 Style is machine-enforced, so don't hand-tune formatting:
