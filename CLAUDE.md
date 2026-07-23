@@ -205,8 +205,10 @@ src/
 - **No Linux assumptions outside designated modules.** OS-specific code is allowed only in
   `backend/hotplug.rs` (behind `DeviceWatcher`), OS-specific state-machine screens, and
   binary discovery. The core (adapter, stores, profiles, features, UI) must stay portable.
-- Tauri v2 ACL narrowed: shell access limited to the `headsetcontrol` binary, no network
-  beyond the updater.
+- Tauri v2 ACL narrowed: **no `shell:*` permission at all** — `headsetcontrol` is spawned
+  from Rust (`std::process::Command`), so the webview cannot spawn a process
+  ([ADR 0002](docs/decisions/0002-exec-headsetcontrol-from-rust.md)). No network beyond
+  the updater. Current capability set: `docs/architecture/security.md`.
 - Desktop-only UI, min width 900 px, no mobile breakpoints. i18n (`vue-i18n`, pl + en)
   from the start — no hardcoded user-facing strings. SemVer, GPL-3.0.
 
