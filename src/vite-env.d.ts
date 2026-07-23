@@ -1,7 +1,5 @@
 /// <reference types="vite/client" />
 
-declare module "*.vue" {
-  import type { DefineComponent } from "vue";
-  const component: DefineComponent<{}, {}, any>;
-  export default component;
-}
+// No `declare module "*.vue"` shim on purpose: vue-tsc resolves single-file
+// components directly, and the shim would flatten their real props/emits types
+// to `any` (and trips @typescript-eslint/no-explicit-any).

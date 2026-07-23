@@ -1,0 +1,5 @@
+# Stable options only — nightly-only keys would break `cargo fmt --check` on the
+# stable toolchain used by CI.
+style_edition = "2024"
+max_width = 100
+newline_style = "Unix"
