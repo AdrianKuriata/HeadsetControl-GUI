@@ -10,10 +10,10 @@ RS_MANIFEST := src-tauri/Cargo.toml
 .PHONY: help setup dev build gen \
         fe-lint fe-typecheck fe-test fe-coverage fe-e2e fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
-        format lint test coverage ci
+        commitlint format lint test coverage ci
 
 help: ## List available targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 ## ── Project ─────────────────────────────────────────────
 
@@ -66,6 +66,10 @@ rs-coverage: ## cargo-llvm-cov with thresholds (100% parser/adapter/state machin
 rs-check: rs-fmt rs-lint rs-coverage ## All Rust gates
 
 ## ── Combined ────────────────────────────────────────────
+
+commitlint: ## Check this branch's commit messages (Conventional Commits)
+	npx --no -- commitlint --from origin/main --to HEAD
+
 
 format: ## Auto-format everything (prettier + rustfmt)
 	npm run format

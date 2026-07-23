@@ -36,12 +36,29 @@ Coverage thresholds are enforced in CI: 100% for logic layers (`core/`,
 `stores/`, `profiles/`, Rust parser/adapter/state machine), 90% for UI
 components. Tests come first — the project works TDD.
 
+## Code style
+
+Style is machine-enforced, so don't hand-tune formatting:
+
+```bash
+make lint    # ESLint + Prettier check + vue-tsc + rustfmt --check + clippy
+make format  # Prettier --write + cargo fmt
+```
+
+ESLint (flat config, `eslint.config.js`) checks correctness; Prettier owns
+formatting. Prettier is deliberately limited to code — Markdown, the design
+reference `docs/maxwell-control-mono.html`, and generated files are excluded.
+Rust follows `rustfmt.toml`; clippy runs with `-D warnings`. The reasoning is in
+[ADR 0003](docs/decisions/0003-lint-and-format-toolchain.md).
+
 ## Workflow
 
 1. Pick an open issue (or open one — no issue, no work) and comment on it.
 2. Branch from `main`: `HC-<issue>-<slug>`.
 3. Commit using [Conventional Commits](https://www.conventionalcommits.org/),
    in English, referencing the issue: `feat(eq): draggable preset points (#16)`.
+   A husky `commit-msg` hook (installed by `make setup`) runs commitlint and
+   rejects anything else; `make commitlint` checks a whole branch at once.
 4. Open a PR to `main` with `Closes #<issue>` in the body. The owner reviews
    and squash-merges.
 

@@ -116,6 +116,11 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 | Rust gates | `make rs-check` (fmt, clippy, coverage) |
 | E2E (MockBackend) | `make fe-e2e` |
 | Auto-format all | `make format` |
+| Check branch commit messages | `make commitlint` |
+
+Style is enforced, not negotiated: ESLint + Prettier (code only — Markdown is excluded),
+`rustfmt.toml` + clippy `-D warnings`, commitlint in a husky `commit-msg` hook
+([ADR 0003](docs/decisions/0003-lint-and-format-toolchain.md)).
 
 ## Working rules
 
