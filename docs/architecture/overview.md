@@ -27,9 +27,11 @@ flowchart LR
 
 ## Backend (Rust, `src-tauri/src/`)
 
-- `backend/mod.rs` — `trait HeadsetBackend { list_devices(); get_state(id);
-  set_param(id, param, value); }`. The DIP seam: a future native HID backend
-  plugs in behind it with zero frontend changes.
+- `backend/mod.rs` — `trait HeadsetBackend { list_devices(); device_state(id);
+  set_param(id, param, value); }` plus the domain types (`Device`, `DeviceState`,
+  `Battery`, `ParamValue`, `BackendError`). The DIP seam: a future native HID
+  backend plugs in behind it with zero frontend changes. Until the adapter lands
+  (#8), `UnimplementedBackend` is registered and answers `not_implemented`.
 - `backend/headsetcontrol.rs` — adapter that execs the binary and validates raw
   JSON into internal domain types. **The UI never sees raw headsetcontrol
   output.** Binary version is checked at startup; incompatibility becomes a
@@ -41,9 +43,14 @@ flowchart LR
 
 ## Frontend (Vue 3, `src/`)
 
-- `core/types.gen.ts` — generated from Rust (tauri-specta), single source of
-  truth for shared types. Never hand-edited.
-- `core/backend.ts` — the **only** place calling `invoke()`/`listen()`.
+- `core/types.gen.ts` — generated from Rust (tauri-specta) by `make gen`, single
+  source of truth for shared types. Never hand-edited; CI fails on a stale copy.
+- `core/backend.ts` — the **only** place calling `invoke()`/`listen()`, enforced
+  by an ESLint rule. Exports the `HeadsetBackend` interface everything else
+  depends on.
+- `core/mock-backend.ts` — a scripted `HeadsetBackend` (devices, states, latency,
+  write errors, hung calls, hotplug) selected with `VITE_BACKEND=mock`
+  (`make dev-mock`); the E2E suite drives it through `window.__headsetDeckMock`.
 - `core/stores/` — Pinia: `devices.ts` (list, selection, hotplug),
   `device.ts` (parameter state; writes are optimistic with rollback + toast).
 - `profiles/` — `DeviceProfile` resolved by `(vid, pid)` with a

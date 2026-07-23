@@ -45,6 +45,9 @@ jobs:
           tool: cargo-llvm-cov
       # rustfmt + clippy + the coverage gate.
       - run: make rs-check
+      # types.gen.ts is generated from Rust: a checked-in copy that no longer
+      # matches the commands is a silently broken contract.
+      - run: make gen-check
 
   build:
     name: Build

@@ -47,3 +47,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0002](0002-exec-headsetcontrol-from-rust.md) | Execute headsetcontrol from Rust, without the Tauri shell plugin | Accepted |
 | [0003](0003-lint-and-format-toolchain.md) | Lint and format toolchain: ESLint flat config, Prettier for code only, commitlint | Accepted |
 | [0004](0004-ci-gates-and-coverage-enforcement.md) | CI gates: Makefile targets, a scripted Rust coverage gate, Dependabot | Accepted |
+| [0005](0005-frontend-backend-contract.md) | The frontend/backend contract: generated types, one IPC module, a scripted mock | Accepted |

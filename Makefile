@@ -11,10 +11,10 @@ COMMITLINT_TO ?= HEAD
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev build build-ci gen \
+.PHONY: help setup dev dev-mock build build-ci gen \
         fe-lint fe-typecheck fe-test fe-coverage fe-e2e fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
-        commitlint format lint test coverage ci
+        commitlint format lint test coverage ci gen-check
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -28,6 +28,9 @@ setup: ## Install all dependencies (npm + cargo fetch)
 dev: ## Run the app in development mode
 	npm run tauri dev
 
+dev-mock: ## Run the frontend alone against the scripted MockBackend
+	VITE_BACKEND=mock npm run dev
+
 build: ## Production build (bundles via tauri)
 	npm run tauri build
 
@@ -35,7 +38,10 @@ build-ci: ## Compile-only build gate (no deb/rpm/AppImage bundling)
 	npm run tauri build -- --no-bundle
 
 gen: ## Regenerate src/core/types.gen.ts from Rust (tauri-specta)
-	npm run gen
+	$(CARGO) test --manifest-path $(RS_MANIFEST) export_typescript_bindings
+
+gen-check: gen ## Fail if the checked-in bindings are stale
+	git diff --exit-code src/core/types.gen.ts
 
 ## ── Frontend ────────────────────────────────────────────
 

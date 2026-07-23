@@ -15,7 +15,10 @@ import { spawnSync } from "node:child_process";
 const THRESHOLD = 100;
 const METRICS = ["lines", "functions", "regions"];
 const MANIFEST = "src-tauri/Cargo.toml";
-const BOOTSTRAP = "src/(main|lib)\\.rs$";
+// Bootstrap (`main.rs`, `lib.rs`) plus `commands.rs`: the commands are one-line
+// delegations to the backend behind Tauri's managed state — unit-testing them
+// would test Tauri, and the real IPC path is covered by the smoke E2E (#14).
+const BOOTSTRAP = "src/(main|lib|commands)\\.rs$";
 
 const cargo = spawnSync(
   "cargo",
