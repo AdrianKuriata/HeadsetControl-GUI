@@ -13,19 +13,40 @@ runs:
   using: composite
   steps:
     # Tauri 2 prerequisites for Linux — https://tauri.app/start/prerequisites/
-    - name: Install system dependencies
+    # The .deb files are cached: downloading them costs ~40 s per job, restoring
+    # them a few seconds. The key carries the runner image version, so a new
+    # image (different set of preinstalled packages) refills the cache instead of
+    # installing an incomplete set.
+    - name: Restore system packages
+      id: apt-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/apt-packages
+        key: apt-${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles('.github/actions/setup/packages.txt') }}
+
+    - name: Download system packages
+      if: steps.apt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        mkdir -p ~/apt-packages/partial
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          build-essential \
-          file \
-          libayatana-appindicator3-dev \
-          librsvg2-dev \
-          libssl-dev \
-          libwebkit2gtk-4.1-dev \
-          libxdo-dev \
-          patchelf
+        sudo apt-get install -y --no-install-recommends --download-only \
+          -o Dir::Cache::archives="$HOME/apt-packages" \
+          $(grep -v '^#' .github/actions/setup/packages.txt | tr '\n' ' ')
+        sudo chown -R "$USER" ~/apt-packages
+
+    - name: Install system packages
+      shell: bash
+      run: |
+        packages=$(grep -v '^#' .github/actions/setup/packages.txt | tr '\n' ' ')
+        if ! sudo dpkg --install --auto-deconfigure ~/apt-packages/*.deb; then
+          # Never let the cache optimisation break the build: fall back to a
+          # plain install (e.g. if the cached set went stale against a new
+          # runner image in a way the cache key did not catch).
+          echo "::warning::cached .deb set incomplete, installing from the network"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends $packages
+        fi
 
     - uses: actions/setup-node@v7
       with:
