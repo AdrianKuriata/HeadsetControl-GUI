@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal capability set for the main window: window chrome, local settings store, logging and desktop notifications. Deliberately contains no shell and no HTTP permission — the headsetcontrol binary is executed from Rust (see docs/decisions/0002-exec-headsetcontrol-from-rust.md) and the app makes no network requests.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "log:default",
+    "store:default",
+    "notification:default"
+  ]
+}
