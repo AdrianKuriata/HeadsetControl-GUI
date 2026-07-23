@@ -29,6 +29,8 @@ export default defineConfig({
         "src/features/registry.ts": { lines: 100, branches: 100, functions: 100, statements: 100 },
         "src/features/**/*.vue": { lines: 90, branches: 90, functions: 90, statements: 90 },
         "src/controls/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        "src/screens/**/*.vue": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        "src/App.vue": { lines: 90, branches: 90, functions: 90, statements: 90 },
       },
     },
   },

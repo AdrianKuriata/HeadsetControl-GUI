@@ -48,3 +48,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0003](0003-lint-and-format-toolchain.md) | Lint and format toolchain: ESLint flat config, Prettier for code only, commitlint | Accepted |
 | [0004](0004-ci-gates-and-coverage-enforcement.md) | CI gates: Makefile targets, a scripted Rust coverage gate, Dependabot | Accepted |
 | [0005](0005-frontend-backend-contract.md) | The frontend/backend contract: generated types, one IPC module, a scripted mock | Accepted |
+| [0006](0006-app-state-machine.md) | The app state machine: pure transitions, screens as data, a placeholder probe | Accepted |
