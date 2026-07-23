@@ -37,5 +37,26 @@ export default defineConfig(
       globals: globals.node,
     },
   },
+  // `src/core/backend.ts` is the only module allowed to talk to Tauri
+  // (PROJECT.md §3.2). Everything else depends on its interface, which is what
+  // lets the whole UI run against the MockBackend.
+  {
+    files: ["src/**/*.{ts,vue}"],
+    ignores: ["src/core/backend.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@tauri-apps/api", "@tauri-apps/api/*"],
+              message:
+                "Only src/core/backend.ts may call invoke()/listen(); depend on HeadsetBackend instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   prettier,
 );

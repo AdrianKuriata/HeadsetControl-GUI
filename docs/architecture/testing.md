@@ -49,7 +49,7 @@ the fixtures below.
 |---|---|
 | **100%** lines/branches/functions | `src/core/`, `src/core/stores/`, `src/profiles/`, `src/features/registry.ts` (Vitest v8); Rust parser/adapter/state machine (`cargo-llvm-cov`) |
 | **90%** | UI components: `src/features/*.vue`, `src/controls/` |
-| excluded | generated code (`*.gen.ts`), bootstrap (`main.ts`, `main.rs`, `lib.rs`), config files |
+| excluded | generated code (`*.gen.ts`), bootstrap (`main.ts`, `main.rs`, `lib.rs`), thin IPC glue (`commands.rs`, covered by the smoke E2E), config files |
 
 E2E does **not** count toward coverage — it measures flows, not lines.
 
