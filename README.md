@@ -12,7 +12,7 @@ not from a hardcoded device list.
 
 ## Stack
 
-Tauri 2 · Vue 3.5 (`<script setup>`, TypeScript strict) · Pinia 3 · Vite 7 ·
+Tauri 2 · Vue 3.5 (`<script setup>`, TypeScript strict) · Pinia 4 · Vite 8 ·
 Rust stable (edition 2024).
 
 ## Requirements
