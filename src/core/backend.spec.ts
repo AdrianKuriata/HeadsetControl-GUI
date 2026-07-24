@@ -6,6 +6,7 @@ import type { Device, DeviceState } from "./types.gen";
 const { listen } = vi.hoisted(() => ({ listen: vi.fn() }));
 const { commands } = vi.hoisted(() => ({
   commands: {
+    detectBinary: vi.fn(),
     listDevices: vi.fn(),
     deviceState: vi.fn(),
     setParam: vi.fn(),
@@ -30,6 +31,20 @@ const STATE: DeviceState = { battery: { status: "available", level: 92 }, chatmi
 describe("tauriBackend", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("returns the detection verdict as it comes — it carries no error envelope", async () => {
+    commands.detectBinary.mockResolvedValue({
+      kind: "bad_version",
+      found: "3.1.0",
+      required: "3.2.0",
+    });
+
+    await expect(tauriBackend.detect()).resolves.toEqual({
+      kind: "bad_version",
+      found: "3.1.0",
+      required: "3.2.0",
+    });
   });
 
   it("returns the devices the IPC command reports", async () => {

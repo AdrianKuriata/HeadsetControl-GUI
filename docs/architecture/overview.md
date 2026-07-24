@@ -27,21 +27,25 @@ flowchart LR
 
 ## Backend (Rust, `src-tauri/src/`)
 
-- `backend/mod.rs` — `trait HeadsetBackend { list_devices(); device_state(id);
-  set_param(id, param, value); }` plus the domain types (`Device`, `DeviceState`,
-  `Battery`, `ParamValue`, `BackendError`). The DIP seam: a future native HID
-  backend plugs in behind it with zero frontend changes. The `headsetcontrol`
-  adapter is what the app registers today.
+- `backend/mod.rs` — `trait HeadsetBackend { detect(); list_devices();
+  device_state(id); set_param(id, param, value); }` plus the domain types
+  (`Device`, `DeviceState`, `Battery`, `ParamValue`, `BackendError`,
+  `Detection`). The DIP seam: a future native HID backend plugs in behind it
+  with zero frontend changes. The `headsetcontrol` adapter is what the app
+  registers today.
 - `backend/headsetcontrol.rs` — the adapter: validates the CLI's JSON into the
   domain types and decides success by *parsing*, since `headsetcontrol` exits 0
   even when an operation failed. **The UI never sees raw headsetcontrol output.**
   Pure apart from an injected `CliRunner`, which is what makes it testable from
   recorded fixtures with no binary installed
   ([ADR 0009](../decisions/0009-headsetcontrol-adapter-seam.md)).
-  Binary version/permission detection is #9.
+- `backend/detect.rs` — the startup diagnosis: minimum `headsetcontrol` version
+  and the `DeviceAccess` seam that tells "no udev rule" from "headset switched
+  off". Pure; returns the `Detection` verdict the state machine renders
+  ([ADR 0010](../decisions/0010-binary-detection-and-permission-diagnosis.md)).
 - `backend/exec.rs` — the one `Command::new("headsetcontrol")` in the app, behind
-  `CliRunner`. No logic, so the coverage gate excludes it; the smoke E2E (#14)
-  covers the real invocation.
+  `CliRunner`, plus the hidraw lookup behind `DeviceAccess`. No logic, so the
+  coverage gate excludes it; the smoke E2E (#14) covers the real invocation.
 - `backend/hotplug.rs` — udev monitor filtered by known vendor IDs, emitting a
   `devices-changed` event; polling as fallback. Battery refresh ~5 s while the
   window is focused. The only module allowed OS-specific code.

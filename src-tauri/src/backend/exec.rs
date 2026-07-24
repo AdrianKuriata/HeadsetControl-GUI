@@ -12,11 +12,12 @@
 
 use std::process::Command;
 
+use super::detect::{Access, DeviceAccess};
 use super::headsetcontrol::{CliOutput, CliRunner};
 
-/// Looked up on `PATH`. Locating a binary that is not there — and telling the
-/// user about it — is binary detection (#9); until then a missing binary simply
-/// surfaces as a failed call.
+/// Looked up on `PATH`. A binary that is not there cannot be spawned, and that
+/// failure is exactly what [`super::detect`] reads as a missing binary — no
+/// separate search of the filesystem is needed.
 pub const BINARY: &str = "headsetcontrol";
 
 /// Runs the real `headsetcontrol`.
@@ -35,5 +36,87 @@ impl CliRunner for ProcessRunner {
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         })
+    }
+}
+
+/// Answers the permission question by asking the kernel, on Linux, the same way
+/// `headsetcontrol` itself does: by opening the hidraw node.
+///
+/// Opening is the *only* honest check. A udev rule grants access through an ACL
+/// (`crw-rw----+`), which permission bits do not show — reading the mode would
+/// report "denied" for a machine that works perfectly. Nothing is ever written:
+/// the handle is closed the moment it is obtained (hardware safety outranks
+/// convenience, PROJECT.md §11).
+pub struct HidrawAccess;
+
+/// Where Linux publishes which hidraw node belongs to which usb device.
+#[cfg(target_os = "linux")]
+const HIDRAW_CLASS: &str = "/sys/class/hidraw";
+
+impl DeviceAccess for HidrawAccess {
+    #[cfg(target_os = "linux")]
+    fn access(&self, vendor_id: u16, product_id: u16) -> Access {
+        let Ok(nodes) = std::fs::read_dir(HIDRAW_CLASS) else {
+            return Access::Unknown;
+        };
+
+        let mut seen = Access::Unknown;
+
+        for node in nodes.flatten() {
+            let name = node.file_name();
+            let uevent = node.path().join("device/uevent");
+
+            if !std::fs::read_to_string(&uevent)
+                .is_ok_and(|uevent| names_device(&uevent, vendor_id, product_id))
+            {
+                continue;
+            }
+
+            // A device can expose several interfaces and the rule may cover
+            // only some of them; one that opens is enough to work with.
+            match open(std::path::Path::new("/dev").join(name)) {
+                Access::Granted => return Access::Granted,
+                other => seen = other,
+            }
+        }
+
+        seen
+    }
+
+    /// Device nodes are a Linux idea. Everywhere else the app must not claim a
+    /// permission problem it has no way to see (PROJECT.md §7).
+    #[cfg(not(target_os = "linux"))]
+    fn access(&self, _vendor_id: u16, _product_id: u16) -> Access {
+        Access::Unknown
+    }
+}
+
+/// `HID_ID=0003:00003329:00004B28` — bus, vendor and product as padded hex.
+#[cfg(target_os = "linux")]
+fn names_device(uevent: &str, vendor_id: u16, product_id: u16) -> bool {
+    uevent.lines().any(|line| {
+        line.strip_prefix("HID_ID=").is_some_and(|id| {
+            let mut parts = id
+                .split(':')
+                .skip(1)
+                .filter_map(|part| u32::from_str_radix(part.trim(), 16).ok());
+            parts.next() == Some(u32::from(vendor_id))
+                && parts.next() == Some(u32::from(product_id))
+        })
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn open(path: std::path::PathBuf) -> Access {
+    match std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+    {
+        Ok(_) => Access::Granted,
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => Access::Denied,
+        // Busy, gone between listing and opening, or anything else the kernel
+        // reports: not a permission verdict, so it must not become one.
+        Err(_) => Access::Unknown,
     }
 }

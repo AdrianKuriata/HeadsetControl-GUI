@@ -8,11 +8,13 @@
 //! to `src/core/types.gen.ts` by tauri-specta and never leak the CLI's own JSON
 //! shape.
 
+mod detect;
 mod exec;
 mod headsetcontrol;
 mod hotplug;
 
-pub use exec::ProcessRunner;
+pub use detect::Detection;
+pub use exec::{HidrawAccess, ProcessRunner};
 pub use headsetcontrol::HeadsetControlBackend;
 
 use serde::{Deserialize, Serialize};
@@ -94,6 +96,11 @@ impl std::error::Error for BackendError {}
 /// The seam. Implemented by [`HeadsetControlBackend`]; a native HID backend
 /// plugs in behind it later with no frontend change.
 pub trait HeadsetBackend: Send + Sync {
+    /// Can this backend be used at all, and if not, why? Answered before the
+    /// app trusts any other call — it is what picks the startup screen
+    /// (PROJECT.md §3.3). Total on purpose: every outcome, including a backend
+    /// that cannot run, is a verdict rather than an error to handle.
+    fn detect(&self) -> Detection;
     fn list_devices(&self) -> Result<Vec<Device>, BackendError>;
     fn device_state(&self, device_id: &str) -> Result<DeviceState, BackendError>;
     fn set_param(

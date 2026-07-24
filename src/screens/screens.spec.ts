@@ -47,10 +47,38 @@ describe("screens that offer a retry", () => {
     expect(wrapper.emitted("retry")).toHaveLength(1);
   });
 
-  it("emits retry from the no-permissions screen, showing a udev rule to copy", async () => {
-    const { wrapper } = mountWithI18n(NoPermissionsScreen);
+  it("names no version on the bad-version screen when the binary named none", () => {
+    const { wrapper } = mountWithI18n(BadVersionScreen, {
+      props: { found: null, required: "3.2.0" },
+    });
 
-    expect(wrapper.get("pre").text()).toContain('KERNEL=="hidraw*"');
+    expect(wrapper.get("[data-part='body']").text()).toContain("could not be read");
+    expect(wrapper.text()).toContain("3.2.0");
+  });
+
+  it("offers a source build on both screens that have no usable binary", () => {
+    for (const screen of [MissingBinaryScreen, BadVersionScreen]) {
+      const { wrapper } = mountWithI18n(screen, {
+        props: { found: "2.5.0", required: "3.2.0" },
+      });
+      const instructions = wrapper.get("[data-part='install-instructions']").text();
+
+      // One dependency line per supported distribution, then upstream's build.
+      expect(instructions).toContain("sudo apt install");
+      expect(instructions).toContain("sudo dnf install");
+      expect(instructions).toContain("sudo pacman -S");
+      expect(instructions).toContain("git clone https://github.com/Sapd/HeadsetControl");
+      expect(instructions).toContain("sudo make install");
+    }
+  });
+
+  it("emits retry from the no-permissions screen, showing the udev rules to copy", async () => {
+    const { wrapper } = mountWithI18n(NoPermissionsScreen);
+    const commands = wrapper.get("[data-part='udev-rule']").text();
+
+    // Upstream's own generator, not a hand-written hidraw catch-all.
+    expect(commands).toContain("headsetcontrol -u | sudo tee /etc/udev/rules.d/70-headsets.rules");
+    expect(commands).toContain("sudo udevadm control --reload-rules");
 
     await wrapper.get("button").trigger("click");
 

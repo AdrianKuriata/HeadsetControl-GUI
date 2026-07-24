@@ -5,6 +5,12 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
+	/**
+	 *  The startup question: is the backend usable, and if not, which screen says
+	 *  why. Returns a verdict rather than a `Result` — "it does not work" is the
+	 *  answer here, not an error.
+	 */
+	detectBinary: () => __TAURI_INVOKE<Detection>("detect_binary"),
 	listDevices: () => typedError<Device[], BackendError>(__TAURI_INVOKE("list_devices")),
 	deviceState: (deviceId: string) => typedError<DeviceState, BackendError>(__TAURI_INVOKE("device_state", { deviceId })),
 	setParam: (deviceId: string, param: string, value: ParamValue) => typedError<null, BackendError>(__TAURI_INVOKE("set_param", { deviceId, param, value })),
@@ -28,6 +34,27 @@ export type Battery = {
 };
 
 export type BatteryStatus = "available" | "charging" | "unavailable";
+
+/**
+ *  What the startup probe concluded. Each variant is a state of the frontend's
+ *  state machine, so this type *is* the detection contract with the UI.
+ */
+export type Detection = 
+/**  A usable binary; the devices it reports can be read. */
+{ kind: "ready" } | 
+/**  Nothing to run — not installed, or not on `PATH`. */
+{ kind: "missing_binary" } | 
+/**
+ *  A binary that is too old, or one whose output this app cannot read at
+ *  all. `found` is `None` in the second case: an incompatible binary is a
+ *  clear screen rather than an invented version number.
+ */
+{ kind: "bad_version"; found: string | null; required: string } | 
+/**
+ *  The binary works and lists devices, but every one of them refuses to
+ *  open — the udev rule is missing.
+ */
+{ kind: "no_permissions" };
 
 /**
  *  A headset (or its dongle) as the UI knows it.

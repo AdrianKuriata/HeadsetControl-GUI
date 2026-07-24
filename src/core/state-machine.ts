@@ -7,16 +7,20 @@ import type { Device } from "./types.gen";
 export type AppState =
   | { kind: "checking-binary" }
   | { kind: "missing-binary" }
-  | { kind: "bad-version"; found: string; required: string }
+  | { kind: "bad-version"; found: string | null; required: string }
   | { kind: "no-permissions" }
   | { kind: "no-device" }
   | { kind: "ready"; device: Device }
   | { kind: "device-lost"; device: Device };
 
-/** Why the startup probe could not reach a usable `headsetcontrol`. */
+/**
+ * Why the startup probe could not reach a usable `headsetcontrol`. Mirrors the
+ * backend's `Detection` verdicts (`src/core/probe.ts` maps between them);
+ * `found` is absent for a binary too incompatible to name its own version.
+ */
 export type ProbeFailure =
   | { kind: "missing-binary" }
-  | { kind: "bad-version"; found: string; required: string }
+  | { kind: "bad-version"; found: string | null; required: string }
   | { kind: "no-permissions" };
 
 export type AppEvent =

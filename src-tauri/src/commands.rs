@@ -11,10 +11,19 @@
 
 use tauri::State;
 
-use crate::backend::{BackendError, Device, DeviceState, HeadsetBackend, ParamValue};
+use crate::backend::{BackendError, Detection, Device, DeviceState, HeadsetBackend, ParamValue};
 
 /// The backend implementation the app runs against, managed by Tauri.
 pub struct Backend(pub Box<dyn HeadsetBackend>);
+
+/// The startup question: is the backend usable, and if not, which screen says
+/// why. Returns a verdict rather than a `Result` — "it does not work" is the
+/// answer here, not an error.
+#[tauri::command]
+#[specta::specta]
+pub fn detect_binary(backend: State<'_, Backend>) -> Detection {
+    backend.0.detect()
+}
 
 #[tauri::command]
 #[specta::specta]

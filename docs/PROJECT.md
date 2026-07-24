@@ -329,6 +329,7 @@ przed wysłaniem PR.
 | 2026-07 | Dystrybucja: `.deb` + AppImage; auto-update AppImage przez tauri-plugin-updater, dla `.deb` check GitHub Releases → docelowo repo APT |
 | 2026-07 | Licencja GPL-3.0; projekt open source |
 | 2026-07 | Maxwell 2 Xbox: PID `0x4b28` potwierdzony na sprzęcie; patch upstream przygotowany |
+| 2026-07 | Minimalna wersja `headsetcontrol`: **3.2.0** (prowizorycznie — pierwsze wydanie, które ma nieść wsparcie Maxwell 2; dziś nie istnieje). Konsekwencja: wydane `3.1.0` trafia na ekran `bad-version`, a ekrany instalacji prowadzą do budowania ze źródeł. Buildy deweloperskie (`continuous-…`) są akceptowane, bo nie da się ich porównać. Do korekty, gdy upstream wyda tag — [ADR 0010](decisions/0010-binary-detection-and-permission-diagnosis.md) |
 | — | Nazwa aplikacji: **do ustalenia** („Headset Deck" = robocza) |
 
 ## 11. Zasada nadrzędna

@@ -6,6 +6,13 @@ export const en = {
   common: {
     checkAgain: "Check again",
   },
+  // Shared by the missing-binary and bad-version screens: both end in the same
+  // place, a source build (see InstallInstructions.vue).
+  install: {
+    dependencies: "Install the build dependencies",
+    build: "Build and install headsetcontrol",
+    udev: "The install step also adds the udev rules that let this app reach the headset.",
+  },
   screens: {
     checking: {
       title: "Checking headsetcontrol",
@@ -19,11 +26,15 @@ export const en = {
     badVersion: {
       title: "headsetcontrol is too old",
       body: "Found version {found}, this app needs {required} or newer.",
+      // The binary answered with something this app cannot read at all — an
+      // old release that does not know the json output, most likely.
+      bodyUnnamed: "This headsetcontrol could not be read; this app needs {required} or newer.",
     },
     noPermissions: {
       title: "No permission to reach the headset",
-      // {path} and {command} are filled with <code> elements via <i18n-t>.
-      body: "Save this rule as {path}, reload the rules ({command}), then reconnect the headset.",
+      // {path} is filled with a <code> element via <i18n-t>.
+      body: "The headset is connected but refuses to open. Let headsetcontrol write the udev rules to {path} and reload them:",
+      reconnect: "Then reconnect the headset and check again.",
     },
     noDevice: {
       title: "No headset connected",
@@ -49,6 +60,11 @@ export const pl: Messages = {
   common: {
     checkAgain: "Sprawdź ponownie",
   },
+  install: {
+    dependencies: "Zainstaluj zależności do budowania",
+    build: "Zbuduj i zainstaluj headsetcontrol",
+    udev: "Instalacja dodaje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
+  },
   screens: {
     checking: {
       title: "Sprawdzanie headsetcontrol",
@@ -61,10 +77,13 @@ export const pl: Messages = {
     badVersion: {
       title: "headsetcontrol jest zbyt stary",
       body: "Znaleziono wersję {found}, aplikacja wymaga {required} lub nowszej.",
+      bodyUnnamed:
+        "Nie udało się odczytać tego headsetcontrol; aplikacja wymaga {required} lub nowszej.",
     },
     noPermissions: {
       title: "Brak uprawnień do urządzenia",
-      body: "Zapisz tę regułę jako {path}, przeładuj reguły ({command}), a następnie podłącz zestaw ponownie.",
+      body: "Zestaw jest podłączony, ale nie daje się otworzyć. Pozwól headsetcontrol zapisać reguły udev do {path} i przeładuj je:",
+      reconnect: "Następnie podłącz zestaw ponownie i sprawdź jeszcze raz.",
     },
     noDevice: {
       title: "Nie podłączono zestawu słuchawkowego",

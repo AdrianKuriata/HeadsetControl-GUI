@@ -13,6 +13,7 @@ use tauri_specta::{Builder, collect_commands};
 /// disagree. Regenerate with `make gen`.
 fn ipc() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
+        commands::detect_binary,
         commands::list_devices,
         commands::device_state,
         commands::set_param,
@@ -28,10 +29,10 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(ipc.invoke_handler())
-        // The real adapter from the start; #9 adds the detection that decides
-        // whether the binary behind it is usable before the app trusts it.
+        // The real adapter, with both of its impure edges plugged in: the
+        // process spawn and the look at device nodes (#8, #9).
         .manage(commands::Backend(Box::new(
-            backend::HeadsetControlBackend::new(backend::ProcessRunner),
+            backend::HeadsetControlBackend::new(backend::ProcessRunner, backend::HidrawAccess),
         )))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,6 @@
 import type { HeadsetBackend, Unsubscribe } from "./backend";
 import { BackendCallError } from "./backend";
-import type { BackendError, Device, DeviceState, ParamValue } from "./types.gen";
+import type { BackendError, Detection, Device, DeviceState, ParamValue } from "./types.gen";
 
 /**
  * How a mocked call misbehaves: it either rejects with a backend error, or
@@ -11,6 +11,8 @@ export type MockFailure = { kind: "error"; error: BackendError } | { kind: "time
 export type MockOperation = "listDevices" | "deviceState" | "setParam";
 
 export interface MockScenario {
+  /** What detection answers — how the binary/permission screens are driven. */
+  detection: Detection;
   devices: Device[];
   /** Device state by device id; a missing entry answers with empty state. */
   states: Record<string, DeviceState>;
@@ -39,6 +41,7 @@ export const MAXWELL2_XBOX: Device = {
 };
 
 export const DEFAULT_SCENARIO: MockScenario = {
+  detection: { kind: "ready" },
   devices: [MAXWELL2_XBOX],
   states: {
     [MAXWELL2_XBOX.id]: {
@@ -64,6 +67,10 @@ export class MockBackend implements HeadsetBackend {
 
   constructor(scenario: Partial<MockScenario> = {}) {
     this.scenario = { ...structuredClone(DEFAULT_SCENARIO), ...scenario };
+  }
+
+  async detect(): Promise<Detection> {
+    return this.scenario.detection;
   }
 
   async listDevices(): Promise<Device[]> {

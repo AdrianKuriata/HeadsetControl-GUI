@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import type { Unsubscribe } from "./core/backend";
 import { createBackend } from "./core/create-backend";
-import { probe } from "./core/probe";
+import { probe, refreshDevices } from "./core/probe";
 import { INITIAL_STATE, transition } from "./core/state-machine";
 import type { AppEvent, AppState } from "./core/state-machine";
 import { SCREENS, screenProps } from "./screens/registry";
@@ -31,20 +31,21 @@ async function retry(): Promise<void> {
   await runProbe();
 }
 
-async function refreshDevices(): Promise<void> {
-  // Reuses the probe so a backend that starts failing mid-session cannot turn
-  // a hotplug event into an unhandled rejection; the current screen simply
-  // stays until the next event or a retry.
-  const result = await probe(backend);
-  if (result.kind === "probe-succeeded") {
-    dispatch({ kind: "devices-changed", devices: result.devices });
+async function onHotplug(): Promise<void> {
+  // Only the device list — a plugged headset is no reason to re-check the
+  // binary. A failed read reports nothing and leaves the screen alone, so a
+  // backend that starts failing mid-session cannot turn a hotplug event into
+  // an unhandled rejection.
+  const event = await refreshDevices(backend);
+  if (event) {
+    dispatch(event);
   }
 }
 
 let unsubscribe: Unsubscribe | undefined;
 
 onMounted(async () => {
-  unsubscribe = await backend.onDevicesChanged(() => void refreshDevices());
+  unsubscribe = await backend.onDevicesChanged(() => void onHotplug());
   await runProbe();
 });
 

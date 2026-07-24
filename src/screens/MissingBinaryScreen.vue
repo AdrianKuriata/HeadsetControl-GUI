@@ -2,6 +2,8 @@
 import { useI18n } from "vue-i18n";
 import { I18nT } from "vue-i18n";
 
+import InstallInstructions from "./InstallInstructions.vue";
+
 // The name of the CLI this app wraps — a proper noun, interpolated so it stays
 // out of the translated sentence and out of the no-bare-strings lint.
 const TOOL = "headsetcontrol";
@@ -26,6 +28,7 @@ defineEmits<{ retry: [] }>();
         ><code class="font-mono text-ink">{{ TOOL }}</code></template
       >
     </I18nT>
+    <InstallInstructions />
     <button
       type="button"
       class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase transition-colors hover:border-b-accent hover:text-ink"
