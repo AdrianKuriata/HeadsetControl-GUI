@@ -52,29 +52,9 @@ onUnmounted(() => unsubscribe?.());
 </script>
 
 <template>
-  <main class="app-root">
+  <!-- The app shell from the mock: a centred, fixed-width column. Document-level
+       styling (tokens, focus ring, fonts) lives in src/styles/index.css. -->
+  <main class="mx-auto flex h-full max-w-[1000px] flex-col px-12">
     <component :is="screen" v-bind="props" @retry="retry" />
   </main>
 </template>
-
-<style>
-html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-}
-
-.app-root {
-  height: 100%;
-}
-
-/* Placeholder styling only — the Mono design system lands with #6. */
-.screen {
-  padding: 2rem;
-}
-
-.screen--dimmed {
-  opacity: 0.5;
-}
-</style>

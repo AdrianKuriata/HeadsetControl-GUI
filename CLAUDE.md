@@ -143,6 +143,11 @@ coverage thresholds are per glob in `vitest.config.ts`, the Rust gate is
   `<button>` in features; missing a prop → extend the H-component, don't bypass it.
   No AI-slop: no gradients, no emoji in UI, no fonts outside Inter Tight + IBM Plex Mono.
   The mock is the design authority.
+- **Styling is Tailwind v4** ([ADR 0008](docs/decisions/0008-tailwind-v4-mono-design-system.md)),
+  configured in CSS — no `tailwind.config.js`, no `<style>` blocks in components.
+  Design values come from the `@theme` tokens in `src/styles/index.css`
+  (`text-ink`, `border-hair`, `*-accent`, `font-mono`), never as raw hex. Tests
+  select on `data-part`, never on a class.
 - **i18n** — every user-facing string is a vue-i18n key in `src/i18n/messages.ts`
   (pl + en), never a literal; `vue/no-bare-strings-in-template` fails the build otherwise.
   Sentences with markup use `<I18nT>`; technical constants render via interpolation.
@@ -201,7 +206,9 @@ src/
 │   ├── registry.ts       # (vid, pid) → profile; GenericProfile fallback
 │   ├── generic.ts
 │   └── audeze-maxwell2.ts
+├── styles/index.css      # the only stylesheet: fonts + Tailwind + @theme tokens (main.ts imports it)
 ├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout
+│                         #   no strings, no domain logic — labels/values arrive as props/slots
 ├── features/             # 1 capability = 1 component (SRP)
 │   ├── SidetoneRow.vue, ChatmixRow.vue, EqualizerSection.vue, …
 │   └── registry.ts       # capability → component map (OCP)

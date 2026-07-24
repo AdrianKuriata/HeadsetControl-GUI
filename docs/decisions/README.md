@@ -50,3 +50,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0005](0005-frontend-backend-contract.md) | The frontend/backend contract: generated types, one IPC module, a scripted mock | Accepted |
 | [0006](0006-app-state-machine.md) | The app state machine: pure transitions, screens as data, a placeholder probe | Accepted |
 | [0007](0007-i18n-vue-i18n.md) | Internationalization: vue-i18n from the start, Composition mode, a lint gate | Accepted |
+| [0008](0008-tailwind-v4-mono-design-system.md) | Tailwind v4 as the styling engine, with the Mono tokens as its theme | Accepted |

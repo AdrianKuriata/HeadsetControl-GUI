@@ -11,10 +11,10 @@ defineProps<{ device: Device }>();
 </script>
 
 <template>
-  <section class="screen screen--dimmed">
-    <h1>{{ device.name }}</h1>
-    <p>{{ t("screens.deviceLost.body") }}</p>
-    <ul>
+  <section class="flex h-full flex-col justify-center gap-3 py-10 opacity-50">
+    <h1 class="text-[15px] font-semibold tracking-[0.22em] uppercase">{{ device.name }}</h1>
+    <p class="max-w-[62ch] text-mid">{{ t("screens.deviceLost.body") }}</p>
+    <ul class="flex flex-col gap-1 font-mono text-[11.5px] tracking-[0.08em] text-mid">
       <li v-for="capability in device.capabilities" :key="capability">{{ capability }}</li>
     </ul>
   </section>
