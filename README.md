@@ -22,8 +22,10 @@ Rust stable (edition 2024).
 - Tauri Linux prerequisites:
   ```sh
   sudo apt install pkg-config libssl-dev libwebkit2gtk-4.1-dev libxdo-dev \
-      libayatana-appindicator3-dev librsvg2-dev
+      libayatana-appindicator3-dev librsvg2-dev libudev-dev
   ```
+  `libudev-dev` is the Linux hotplug monitor's build dependency; it is not
+  needed on other platforms, where the app watches devices by polling.
 - The `headsetcontrol` binary in `PATH` (runtime dependency)
 
 ## Development

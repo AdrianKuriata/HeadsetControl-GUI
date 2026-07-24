@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
 import type { Unsubscribe } from "./core/backend";
 import { createBackend } from "./core/create-backend";
-import { probe, refreshDevices } from "./core/probe";
+import { probe, readDeviceState, refreshDevices } from "./core/probe";
+import { startRefreshLoop } from "./core/refresh";
+import type { RefreshLoop } from "./core/refresh";
 import { INITIAL_STATE, transition } from "./core/state-machine";
 import type { AppEvent, AppState } from "./core/state-machine";
+import type { DeviceState } from "./core/types.gen";
 import { SCREENS, screenProps } from "./screens/registry";
 
 // The state machine lives here (PROJECT.md §3.3): this component owns the
@@ -14,9 +17,10 @@ import { SCREENS, screenProps } from "./screens/registry";
 // screens/registry.ts, so this file stays a shell.
 const backend = createBackend();
 const state = ref<AppState>(INITIAL_STATE);
+const readings = ref<DeviceState | null>(null);
 
 const screen = computed(() => SCREENS[state.value.kind]);
-const props = computed(() => screenProps(state.value));
+const props = computed(() => screenProps(state.value, readings.value));
 
 function dispatch(event: AppEvent): void {
   state.value = transition(state.value, event);
@@ -42,14 +46,46 @@ async function onHotplug(): Promise<void> {
   }
 }
 
+// Live values are polled, not pushed: nothing tells the app that the battery
+// dropped a percent (#10). The device store takes this over in #11.
+async function refreshReadings(): Promise<void> {
+  const current = state.value;
+  if (current.kind !== "ready") {
+    return;
+  }
+
+  const values = await readDeviceState(backend, current.device.id);
+  const stillCurrent = state.value.kind === "ready" && state.value.device.id === current.device.id;
+
+  if (values && stillCurrent) {
+    readings.value = values;
+  }
+}
+
+// Readings belong to one headset: a different one — or none — starts over.
+watch(
+  () => (state.value.kind === "ready" ? state.value.device.id : null),
+  (deviceId) => {
+    readings.value = null;
+    if (deviceId !== null) {
+      void refreshReadings();
+    }
+  },
+);
+
 let unsubscribe: Unsubscribe | undefined;
+let refresh: RefreshLoop | undefined;
 
 onMounted(async () => {
   unsubscribe = await backend.onDevicesChanged(() => void onHotplug());
+  refresh = startRefreshLoop(() => void refreshReadings());
   await runProbe();
 });
 
-onUnmounted(() => unsubscribe?.());
+onUnmounted(() => {
+  unsubscribe?.();
+  refresh?.stop();
+});
 </script>
 
 <template>

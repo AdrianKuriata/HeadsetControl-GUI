@@ -1,7 +1,7 @@
 import { BackendCallError } from "./backend";
 import type { HeadsetBackend } from "./backend";
 import type { AppEvent, ProbeFailure } from "./state-machine";
-import type { Detection } from "./types.gen";
+import type { Detection, DeviceState } from "./types.gen";
 
 /**
  * The startup probe: two questions, in the order that makes the answers
@@ -34,13 +34,32 @@ export async function probe(backend: HeadsetBackend): Promise<AppEvent> {
  *
  * Deliberately *not* the full probe: a headset being plugged in is no reason to
  * re-check the binary's version or its permissions, and doing so would spawn
- * the CLI twice on every event (and on every poll tick once #10 lands).
- * Resolves to nothing when the list cannot be read, leaving the current screen
- * alone until the next event or a retry.
+ * the CLI twice on every event. Resolves to nothing when the list cannot be
+ * read, leaving the current screen alone until the next event or a retry.
  */
 export async function refreshDevices(backend: HeadsetBackend): Promise<AppEvent | undefined> {
   try {
     return { kind: "devices-changed", devices: await backend.listDevices() };
+  } catch (error) {
+    rethrowUnexpected(error);
+    return undefined;
+  }
+}
+
+/**
+ * The live values of one device — battery, chatmix — re-read on the refresh
+ * loop's tick (#10).
+ *
+ * Resolves to nothing when the read fails, which is routine: a headset that
+ * went to sleep between two ticks answers with an error, and the app keeps
+ * showing what it last knew rather than blanking the screen.
+ */
+export async function readDeviceState(
+  backend: HeadsetBackend,
+  deviceId: string,
+): Promise<DeviceState | undefined> {
+  try {
+    return await backend.deviceState(deviceId);
   } catch (error) {
     rethrowUnexpected(error);
     return undefined;

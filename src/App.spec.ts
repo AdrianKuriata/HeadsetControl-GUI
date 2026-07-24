@@ -5,6 +5,7 @@ import App from "./App.vue";
 import { MOCK_BACKEND_FLAG, createBackend, resetBackend } from "./core/create-backend";
 import type { MockBackend } from "./core/mock-backend";
 import { MAXWELL2_XBOX } from "./core/mock-backend";
+import { REFRESH_INTERVAL_MS } from "./core/refresh";
 import { mountWithI18n } from "./test-support";
 
 /** The backend the app will pick up, scripted before it boots. */
@@ -20,6 +21,7 @@ function mountApp() {
 describe("App", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.useRealTimers();
     resetBackend();
   });
 
@@ -134,6 +136,84 @@ describe("App", () => {
     await flushPromises();
 
     expect(app.text()).toContain(MAXWELL2_XBOX.name);
+  });
+
+  it("shows the live values of the connected device", async () => {
+    scriptedBackend();
+
+    const app = mountApp();
+    await flushPromises();
+
+    expect(app.get('[data-part="battery"]').text()).toBe("92%");
+  });
+
+  it("keeps the values fresh while the app is on screen", async () => {
+    vi.useFakeTimers();
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    backend.scenario.states[MAXWELL2_XBOX.id] = {
+      battery: { status: "available", level: 41 },
+      chatmix: null,
+    };
+    vi.advanceTimersByTime(REFRESH_INTERVAL_MS);
+    await flushPromises();
+
+    expect(app.get('[data-part="battery"]').text()).toBe("41%");
+  });
+
+  it("forgets the values when the device goes away", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    backend.setDevices([]);
+    await flushPromises();
+
+    expect(app.text()).not.toContain("92%");
+  });
+
+  it("keeps the last values when a refresh fails", async () => {
+    vi.useFakeTimers();
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    backend.fail("deviceState", { kind: "error", error: { kind: "failed", message: "asleep" } });
+    vi.advanceTimersByTime(REFRESH_INTERVAL_MS);
+    await flushPromises();
+
+    expect(app.get('[data-part="battery"]').text()).toBe("92%");
+  });
+
+  it("reads nothing while there is no device to read", async () => {
+    vi.useFakeTimers();
+    const backend = scriptedBackend();
+    backend.setDevices([]);
+    const app = mountApp();
+    await flushPromises();
+
+    const reads = vi.spyOn(backend, "deviceState");
+    vi.advanceTimersByTime(REFRESH_INTERVAL_MS * 2);
+    await flushPromises();
+    app.unmount();
+
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  it("stops refreshing once unmounted", async () => {
+    vi.useFakeTimers();
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    const reads = vi.spyOn(backend, "deviceState");
+    app.unmount();
+    vi.advanceTimersByTime(REFRESH_INTERVAL_MS * 3);
+    await flushPromises();
+
+    expect(reads).not.toHaveBeenCalled();
   });
 
   it("stops listening for hotplug once unmounted", async () => {

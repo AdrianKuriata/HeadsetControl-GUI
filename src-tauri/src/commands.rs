@@ -9,12 +9,15 @@
 //! backend's own tests do not already cover, and the real IPC path is exercised
 //! by the smoke E2E suite (#14).
 
+use std::sync::Arc;
+
 use tauri::State;
 
 use crate::backend::{BackendError, Detection, Device, DeviceState, HeadsetBackend, ParamValue};
 
-/// The backend implementation the app runs against, managed by Tauri.
-pub struct Backend(pub Box<dyn HeadsetBackend>);
+/// The backend implementation the app runs against, managed by Tauri. Shared
+/// rather than owned: the hotplug watcher lists devices through the same one.
+pub struct Backend(pub Arc<dyn HeadsetBackend>);
 
 /// The startup question: is the backend usable, and if not, which screen says
 /// why. Returns a verdict rather than a `Result` — "it does not work" is the

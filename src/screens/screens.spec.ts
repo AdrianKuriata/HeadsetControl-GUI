@@ -102,6 +102,41 @@ describe("device screens", () => {
     );
   });
 
+  it.each([
+    { readings: undefined, shows: "Not reporting", when: "nothing has been read yet" },
+    {
+      readings: { battery: { status: "available", level: 71 }, chatmix: null },
+      shows: "71%",
+      when: "the battery reports a level",
+    },
+    {
+      readings: { battery: { status: "charging", level: 40 }, chatmix: null },
+      shows: "Charging 40%",
+      when: "the headset is on the charger",
+    },
+    {
+      readings: { battery: { status: "charging", level: null }, chatmix: null },
+      shows: "Charging",
+      when: "it charges without saying how far along",
+    },
+    {
+      readings: { battery: { status: "unavailable", level: null }, chatmix: null },
+      shows: "Not reporting",
+      when: "the headset is off",
+    },
+    {
+      readings: { battery: null, chatmix: 64 },
+      shows: "Not reporting",
+      when: "the device has no battery to report",
+    },
+  ] as const)("shows the battery when $when", ({ readings, shows }) => {
+    const { wrapper } = mountWithI18n(ReadyScreen, {
+      props: { device: MAXWELL2_XBOX, readings },
+    });
+
+    expect(wrapper.get('[data-part="battery"]').text()).toBe(shows);
+  });
+
   it("dims the last known values when the device is lost", () => {
     const { wrapper } = mountWithI18n(DeviceLostScreen, { props: { device: MAXWELL2_XBOX } });
 

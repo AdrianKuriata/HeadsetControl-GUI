@@ -6,7 +6,12 @@
 mod backend;
 mod commands;
 
+use std::sync::Arc;
+
+use tauri::{AppHandle, Emitter};
 use tauri_specta::{Builder, collect_commands};
+
+use backend::hotplug::{self, ChangeSink};
 
 /// The single description of the IPC surface: it registers the commands with
 /// Tauri **and** generates their TypeScript counterparts, so the two can never
@@ -20,20 +25,50 @@ fn ipc() -> Builder<tauri::Wry> {
     ])
 }
 
+/// Carries a hotplug change to the webview. The event has no payload: the
+/// frontend re-lists devices when it arrives (#10).
+struct WebviewEvents(AppHandle);
+
+impl ChangeSink for WebviewEvents {
+    fn devices_changed(&self) {
+        if let Err(error) = self.0.emit(hotplug::DEVICES_CHANGED, ()) {
+            log::warn!("could not deliver a hotplug event: {error}");
+        }
+    }
+}
+
+/// Starts watching for hotplug on its own thread: the watchers block, and the
+/// UI thread must not.
+fn watch_devices(app: &AppHandle, backend: Arc<dyn backend::HeadsetBackend>) {
+    let forced = hotplug::forces_polling(std::env::var(hotplug::WATCHER_ENV).ok().as_deref());
+    let watcher = hotplug::choose(forced, backend::native_watcher, || backend::PollingWatcher);
+    let events = WebviewEvents(app.clone());
+
+    std::thread::spawn(move || hotplug::watch(watcher, move || backend.list_devices(), events));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let ipc = ipc();
+    // The real adapter, with both of its impure edges plugged in: the process
+    // spawn and the look at device nodes (#8, #9). Shared, because the hotplug
+    // thread lists devices through the same backend the commands use.
+    let backend: Arc<dyn backend::HeadsetBackend> = Arc::new(backend::HeadsetControlBackend::new(
+        backend::ProcessRunner,
+        backend::HidrawAccess,
+    ));
+    let watched = Arc::clone(&backend);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(ipc.invoke_handler())
-        // The real adapter, with both of its impure edges plugged in: the
-        // process spawn and the look at device nodes (#8, #9).
-        .manage(commands::Backend(Box::new(
-            backend::HeadsetControlBackend::new(backend::ProcessRunner, backend::HidrawAccess),
-        )))
+        .manage(commands::Backend(backend))
+        .setup(move |app| {
+            watch_devices(app.handle(), watched);
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

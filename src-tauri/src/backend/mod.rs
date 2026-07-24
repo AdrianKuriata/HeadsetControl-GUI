@@ -11,10 +11,10 @@
 mod detect;
 mod exec;
 mod headsetcontrol;
-mod hotplug;
+pub mod hotplug;
 
 pub use detect::Detection;
-pub use exec::{HidrawAccess, ProcessRunner};
+pub use exec::{HidrawAccess, PollingWatcher, ProcessRunner, native_watcher};
 pub use headsetcontrol::HeadsetControlBackend;
 
 use serde::{Deserialize, Serialize};
