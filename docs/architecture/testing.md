@@ -1,8 +1,8 @@
 # Testing strategy
 
-> **Status:** unit/component tooling and the CI gates are in place (#3). Still to
-> land: contract fixtures (#8), Playwright E2E (#13), smoke E2E (#14) — reconcile
-> this doc in those PRs.
+> **Status:** unit/component tooling and the CI gates (#3), contract fixtures
+> (#8) and the Playwright E2E suite (#13) are in place. Still to land: smoke E2E
+> on the real app (#14) — reconcile this doc in that PR.
 
 The project works **TDD**: test (RED) → minimal code (GREEN) → refactor, test
 always before implementation. `make ci` is the full local gate; CI enforces the
@@ -16,9 +16,9 @@ same thresholds and blocks merge.
    - TS (Vitest): stores, profile registry, capability mapping, platform
      variants.
    - Components (Vue Test Utils): behaviors, interactions, ARIA — not pixels.
-2. **E2E on MockBackend** (Playwright against a Vite build, issue #13): full
-   flows — hotplug, device-lost, write-failure rollback, device selection,
-   platform themes. Deterministic; runs on every PR.
+2. **E2E on MockBackend** (Playwright against a Vite build): full flows —
+   startup verdicts, hotplug, device-lost and recovery, write-failure rollback.
+   Deterministic; runs on every PR. See [below](#e2e-on-mockbackend).
 3. **Smoke E2E on the real app** (issue #14): `tauri-driver` (WebDriver) + xvfb
    in CI; a **fake `headsetcontrol` binary** on PATH returns JSON fixtures,
    including error scenarios (missing binary, bad format, timeout). Exercises
@@ -57,11 +57,45 @@ Unit and component tests sit next to the code they cover, as `*.spec.ts`
 Rust tests live in `#[cfg(test)]` modules beside the code, contract tests read
 the fixtures below.
 
+## E2E on MockBackend
+
+`e2e/*.e2e.ts`, run by `make fe-e2e` (and as part of `make ci`). Playwright
+builds the app with `vite build --mode mock` — `.env.mock` sets
+`VITE_BACKEND=mock` — serves it with `vite preview`, and drives it in Chromium.
+There is no Tauri shell and no binary: the backend is `src/core/mock-backend.ts`.
+
+Two globals make that scriptable, and both exist **only** in the mock build:
+
+| Global | Set by | Purpose |
+|---|---|---|
+| `__headsetDeckScenario` | the test, before the bundle runs | what the mock **boots** with: devices, detection verdict, latency, failures |
+| `__headsetDeckMock` | the app, on boot | the live mock — `setDevices()` fires hotplug, `fail()` makes the device refuse, `writes` records what was sent |
+
+The boot global matters because the app probes on mount: a scenario parked
+afterwards would only be seen by the next event, so "no headset at startup" or
+"binary too old" could not be tested at all.
+
+**Determinism rules** (the acceptance criterion of #13):
+
+- `retries: 0`. A flake is a bug; retrying would hide it.
+- No `waitForTimeout` anywhere — every assertion is a Playwright web-first
+  expectation that polls the DOM.
+- No real device, no real timers: events come from the mock, and the mock's
+  default latency is 0.
+
+Selectors are `data-part` / `data-capability` attributes and ARIA roles, never
+CSS classes — the same rule the component tests follow.
+
+Two flows named in #13 are **not** covered yet, because the UI they need does
+not exist: choosing between several connected headsets (the store supports it,
+[ADR 0012](../decisions/0012-stores-optimistic-writes.md); the picker does not
+exist) and platform accent switching (#15). Both land with their feature.
+
 ## Coverage policy (CI-enforced, build red below threshold)
 
 | Threshold | Scope |
 |---|---|
-| **100%** lines/branches/functions | `src/core/`, `src/core/stores/`, `src/profiles/`, `src/features/registry.ts` (Vitest v8); Rust parser/adapter/state machine (`cargo-llvm-cov`) |
+| **100%** lines/branches/functions | `src/core/`, `src/core/stores/`, `src/profiles/`, `src/features/*.ts` (Vitest v8); Rust parser/adapter/detection/hotplug (`cargo-llvm-cov`) |
 | **90%** | UI components: `src/features/*.vue`, `src/controls/` |
 | excluded | generated code (`*.gen.ts`), bootstrap (`main.ts`, `main.rs`, `lib.rs`), thin IPC glue (`commands.rs`, covered by the smoke E2E), config files |
 
@@ -90,6 +124,7 @@ on `main`. Jobs are split **by stack, not by stage**, and run in parallel:
 | Frontend | `make fe-check` — ESLint, Prettier, vue-tsc, Vitest + thresholds | Node only |
 | Rust | `make rs-check` — rustfmt, clippy, coverage gate | Node, Rust, WebKit packages |
 | Build | `make build-ci` — `tauri build --no-bundle` | Node, Rust, WebKit packages |
+| E2E | `make fe-e2e` — Playwright on the mock build | Node, Chromium (cached) |
 | Commit messages | `make commitlint` over the PR's commit range | Node only |
 
 Every job calls the same `make` target a developer runs locally, so CI and the
