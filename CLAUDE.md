@@ -178,9 +178,13 @@ permissions): the minimum `headsetcontrol` version is one `const` there, and per
 diagnosed by opening the hidraw node behind a second injected seam, `DeviceAccess`, never from
 the CLI's `errors` map — a powered-off headset looks identical there
 ([ADR 0010](docs/decisions/0010-binary-detection-and-permission-diagnosis.md)). A future native
-HID backend plugs in behind the same trait without frontend changes. Hotplug is a udev monitor
-emitting a `devices-changed` event, with polling as fallback; it re-lists devices only and never
-re-runs detection.
+HID backend plugs in behind the same trait without frontend changes. `hotplug.rs` holds the
+hotplug **loop** — pure and gated: a signal makes it re-list devices and emit `devices-changed`
+only when the set of device ids differs, so a udev burst or a poll tick costs the frontend
+nothing, and it never re-runs detection. The watchers themselves are the third injected seam,
+`DeviceWatcher`, implemented in `exec.rs`: udev (Linux, `hidraw` subsystem — no vendor table)
+and a 3 s polling fallback, used off Linux, when the monitor will not open, and when
+`HEADSET_DECK_WATCHER=polling` forces it ([ADR 0011](docs/decisions/0011-hotplug-watcher-seam.md)).
 
 Frontend seams: `src/core/backend.ts` is the *only* place calling `invoke()`/`listen()`;
 `src/core/types.gen.ts` is generated from Rust via tauri-specta (single source of truth).
@@ -203,13 +207,14 @@ src-tauri/src/
     ├── mod.rs            # trait HeadsetBackend  ← DIP seam
     ├── headsetcontrol.rs # adapter: parse + map (anti-corruption layer); pure, gated 100%
     ├── detect.rs         # startup verdict: min version + DeviceAccess seam; pure, gated 100%
-    ├── exec.rs           # the only Command::new + hidraw lookup — injected, excluded from coverage
-    └── hotplug.rs        # udev monitor → frontend events (OS-specific allowed here)
+    ├── exec.rs           # the impure edges: Command::new, hidraw lookup, OS watchers — excluded from coverage
+    └── hotplug.rs        # hotplug loop + DeviceWatcher seam; pure, gated 100%
 
 src/
 ├── core/
 │   ├── types.gen.ts      # GENERATED from Rust (tauri-specta) — never hand-edit
 │   ├── backend.ts        # the ONLY place calling invoke()/listen()
+│   ├── refresh.ts        # 5 s value refresh loop, paused while the window is hidden
 │   └── stores/
 │       ├── devices.ts    # Pinia: list, selection, hotplug
 │       └── device.ts     # Pinia: parameter state, optimistic update + rollback

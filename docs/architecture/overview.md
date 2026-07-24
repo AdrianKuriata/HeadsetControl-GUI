@@ -22,7 +22,7 @@ flowchart LR
     ST --> APP[App.vue\nstate machine]
     APP -->|capability → component| FEAT[features/*]
     PROF[profiles/*\nvid,pid → DeviceProfile] --> FEAT
-    UDEV[hotplug.rs\nudev monitor] -->|devices-changed| BE
+    UDEV[hotplug.rs\nudev monitor / polling] -->|devices-changed| BE
 ```
 
 ## Backend (Rust, `src-tauri/src/`)
@@ -43,12 +43,19 @@ flowchart LR
   and the `DeviceAccess` seam that tells "no udev rule" from "headset switched
   off". Pure; returns the `Detection` verdict the state machine renders
   ([ADR 0010](../decisions/0010-binary-detection-and-permission-diagnosis.md)).
-- `backend/exec.rs` — the one `Command::new("headsetcontrol")` in the app, behind
-  `CliRunner`, plus the hidraw lookup behind `DeviceAccess`. No logic, so the
-  coverage gate excludes it; the smoke E2E (#14) covers the real invocation.
-- `backend/hotplug.rs` — udev monitor filtered by known vendor IDs, emitting a
-  `devices-changed` event; polling as fallback. Battery refresh ~5 s while the
-  window is focused. The only module allowed OS-specific code.
+- `backend/exec.rs` — the app's impure edges: the one
+  `Command::new("headsetcontrol")` behind `CliRunner`, the hidraw lookup behind
+  `DeviceAccess`, and the two `DeviceWatcher` implementations (`UdevWatcher`,
+  `PollingWatcher`). No logic, so the coverage gate excludes it; the smoke E2E
+  (#14) covers the real invocations.
+- `backend/hotplug.rs` — the hotplug loop: wait for a signal from a
+  `DeviceWatcher`, re-list devices, and emit `devices-changed` only when the set
+  of device ids actually differs. Pure and fully gated; the OS-specific watchers
+  live in `exec.rs`. udev filters on the `hidraw` subsystem — no vendor table,
+  because the adapter's own listing decides what changed. Polling (3 s) is the
+  fallback when there is no native watcher and when
+  `HEADSET_DECK_WATCHER=polling` asks for it
+  ([ADR 0011](../decisions/0011-hotplug-watcher-seam.md)).
 - `commands.rs` — thin IPC commands; types exported to TS via tauri-specta.
 
 ## Frontend (Vue 3, `src/`)
@@ -58,6 +65,9 @@ flowchart LR
 - `core/backend.ts` — the **only** place calling `invoke()`/`listen()`, enforced
   by an ESLint rule. Exports the `HeadsetBackend` interface everything else
   depends on.
+- `core/refresh.ts` — the value refresh loop: ticks every 5 s while the window
+  is not hidden, pausing when it is. Hotplug is an event; battery and chatmix
+  are not, so they are polled ([ADR 0011](../decisions/0011-hotplug-watcher-seam.md)).
 - `core/mock-backend.ts` — a scripted `HeadsetBackend` (devices, states, latency,
   write errors, hung calls, hotplug) selected with `VITE_BACKEND=mock`
   (`make dev-mock`); the E2E suite drives it through `window.__headsetDeckMock`.

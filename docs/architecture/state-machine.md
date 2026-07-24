@@ -41,7 +41,9 @@ stateDiagram-v2
   real state.
 - **Hotplug** (`devices-changed` event from `backend/hotplug.rs`, polling as
   fallback) drives `no-device ↔ ready ↔ device-lost`. Connecting/disconnecting a
-  headset updates the UI by itself — never requires a restart.
+  headset updates the UI by itself — never requires a restart. The event fires
+  only when the listed device ids really changed, so a udev burst or a poll tick
+  costs the frontend nothing ([ADR 0011](../decisions/0011-hotplug-watcher-seam.md)).
 - **Retry buttons** on the three binary/permission screens re-run the probe.
 
 ## What the probe asks
@@ -67,6 +69,12 @@ every listed device refuses.
 else — a plugged headset is no reason to re-check a binary, and re-probing
 would double the CLI spawns on every event.
 
+**Values are polled, not pushed.** Inside `ready`, `core/refresh.ts` re-reads
+the selected device (`readDeviceState()`) every 5 s while the window is on
+screen, and pauses while it is hidden. A failed read changes nothing: the last
+values stay up, because a headset that went to sleep between two ticks is not a
+state change.
+
 ## Error handling inside `ready`
 
 These do **not** change the app state:
@@ -82,8 +90,13 @@ These do **not** change the app state:
   `AppEvent` and the pure `transition(state, event)`. All the logic, none of the
   rendering.
 - [`src/core/probe.ts`](../../src/core/probe.ts) — `probe()` (detection, then
-  the device list) and `refreshDevices()` (the hotplug path). Maps the backend's
-  `Detection` verdicts onto `ProbeFailure`.
+  the device list), `refreshDevices()` (the hotplug path) and
+  `readDeviceState()` (the refresh path). Maps the backend's `Detection`
+  verdicts onto `ProbeFailure`.
+- [`src/core/refresh.ts`](../../src/core/refresh.ts) — the visibility-aware
+  refresh loop driving `readDeviceState()`.
+- [`src-tauri/src/backend/hotplug.rs`](../../src-tauri/src/backend/hotplug.rs) —
+  the watcher loop deciding when `devices-changed` is worth emitting.
 - [`src-tauri/src/backend/detect.rs`](../../src-tauri/src/backend/detect.rs) —
   the diagnosis itself: minimum version, and the `DeviceAccess` seam whose real
   hidraw implementation lives in `backend/exec.rs`.

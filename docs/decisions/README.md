@@ -52,3 +52,5 @@ Routine implementation choices that follow the spec need no ADR.
 | [0007](0007-i18n-vue-i18n.md) | Internationalization: vue-i18n from the start, Composition mode, a lint gate | Accepted |
 | [0008](0008-tailwind-v4-mono-design-system.md) | Tailwind v4 as the styling engine, with the Mono tokens as its theme | Accepted |
 | [0009](0009-headsetcontrol-adapter-seam.md) | The headsetcontrol adapter: an injected runner, parsing as the only source of truth | Accepted |
+| [0010](0010-binary-detection-and-permission-diagnosis.md) | Binary detection and permission diagnosis: a version constant and a device-node seam | Accepted |
+| [0011](0011-hotplug-watcher-seam.md) | Hotplug: a pure loop, OS watchers behind a seam, no vendor table | Accepted |
