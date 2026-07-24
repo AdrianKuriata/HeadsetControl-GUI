@@ -63,6 +63,10 @@ All gates green locally — do not push red and let CI find it (wastes the user'
   with a scripted scenario through two mock-only globals and asserts on
   `data-part` attributes; no retries, no `waitForTimeout`
   (`docs/architecture/testing.md`). Adding a flow = a new `*.e2e.ts` file.
+- `make smoke` (`smoke/run.mjs`) drives the **built** app under `tauri-driver`
+  with `smoke/fake-headsetcontrol` on PATH — the only automated test of the real
+  IPC path. Not part of `make ci` (it needs the drivers and a display); CI runs
+  it per PR. Adding a scenario = a fixture + a case in `smoke/run.mjs`.
 
 ### 5. Commit, push, PR
 - Conventional Commits, English, issue referenced: `feat(eq): draggable preset points (#16)`.
@@ -120,6 +124,7 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 | Frontend gates | `make fe-check` (lint, typecheck, coverage) |
 | Rust gates | `make rs-check` (fmt, clippy, coverage) |
 | E2E (MockBackend) | `make fe-e2e` |
+| Smoke E2E (built app + fake CLI) | `make smoke` |
 | Auto-format all | `make format` |
 | Check branch commit messages | `make commitlint` |
 

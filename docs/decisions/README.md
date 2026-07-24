@@ -56,3 +56,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0011](0011-hotplug-watcher-seam.md) | Hotplug: a pure loop, OS watchers behind a seam, no vendor table | Accepted |
 | [0012](0012-stores-optimistic-writes.md) | Stores: injected backend, a focused device, optimistic writes with a guarded rollback | Accepted |
 | [0013](0013-feature-row-contract.md) | Feature rows: one capability, one component, one shared prop contract | Accepted |
+| [0014](0014-cli-call-timeout.md) | A bounded `headsetcontrol` call, and what a hung binary looks like | Accepted |
