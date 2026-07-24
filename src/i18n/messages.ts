@@ -5,6 +5,12 @@
 export const en = {
   common: {
     checkAgain: "Check again",
+    dismiss: "Dismiss",
+  },
+  toast: {
+    // The capability identifier is a technical constant, so it interpolates
+    // rather than being translated.
+    writeFailed: "The headset refused the change to {capability}.",
   },
   // Shared by the missing-binary and bad-version screens: both end in the same
   // place, a source build (see InstallInstructions.vue).
@@ -62,6 +68,10 @@ export type Messages = DeepStrings<typeof en>;
 export const pl: Messages = {
   common: {
     checkAgain: "Sprawdź ponownie",
+    dismiss: "Zamknij",
+  },
+  toast: {
+    writeFailed: "Zestaw odrzucił zmianę {capability}.",
   },
   install: {
     dependencies: "Zainstaluj zależności do budowania",
