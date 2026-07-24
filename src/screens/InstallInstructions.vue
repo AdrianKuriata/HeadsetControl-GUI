@@ -29,7 +29,7 @@ const { t } = useI18n({ useScope: "global" });
 
 <template>
   <div class="flex flex-col gap-3" data-part="install-instructions">
-    <h2 class="font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase">
+    <h2 class="font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
       {{ t("install.dependencies") }}
     </h2>
     <dl class="flex flex-col gap-2">
@@ -45,7 +45,7 @@ const { t } = useI18n({ useScope: "global" });
       </template>
     </dl>
 
-    <h2 class="mt-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase">
+    <h2 class="mt-1 font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
       {{ t("install.build") }}
     </h2>
     <pre
