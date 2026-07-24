@@ -37,7 +37,7 @@ parser: keep existing fixtures, add new ones for new formats.
 | Fixture | Source | Covers |
 |---|---|---|
 | [`maxwell2-xbox-output-json.json`](../fixtures/maxwell2-xbox-output-json.json) | recorded | a healthy device: capabilities, battery level, chatmix |
-| [`maxwell2-xbox-partial-errors.json`](../fixtures/maxwell2-xbox-partial-errors.json) | recorded | present but unreadable — `status: "partial"`, `level: -1`, an `errors` map (a missing udev rule; #9's signal) |
+| [`maxwell2-xbox-partial-errors.json`](../fixtures/maxwell2-xbox-partial-errors.json) | recorded (headset powered off) | present but unreadable — `status: "partial"`, `level: -1`, an `errors` map. A missing udev rule produces the same shape, so #9 cannot tell them apart from this alone |
 | [`test-device-multi.json`](../fixtures/test-device-multi.json) | recorded (`--test-device`) | two devices at once, and the CLI's full capability vocabulary |
 | [`write-actions-mixed.json`](../fixtures/write-actions-mixed.json) | recorded | the write shape: an `actions` array with one success and one failure |
 | [`no-devices.json`](../fixtures/no-devices.json) | hand-authored | nothing connected — an empty list, not an error |

@@ -253,9 +253,13 @@ fn parse_state(json: &str, device_id: &str) -> Result<DeviceState, BackendError>
         })?;
 
     if !raw.errors.is_empty() {
-        // A partial read: the device is there but a value could not be taken
-        // from it (typically missing udev permissions, which is #9's screen).
-        // The value is reported as absent rather than invented.
+        // A partial read: the dongle answered but the headset behind it did
+        // not. Confirmed against hardware — a powered-off Maxwell 2 reports
+        // `Could not open device` for battery and chatmix, and reports real
+        // values the moment it is switched on, with no other change. Missing
+        // udev permissions look the same from here, which is why this is not
+        // turned into a diagnosis: the value is reported as absent rather than
+        // invented, and #9 tells the two apart.
         log::warn!(
             "headsetcontrol could not read {device_id}: {:?}",
             raw.errors

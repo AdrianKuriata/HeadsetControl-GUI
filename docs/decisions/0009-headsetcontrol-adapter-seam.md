@@ -20,7 +20,8 @@ not what a reasonable implementation would assume:
   `-d` that matches nothing is ignored and every connected device comes back.
 - **Values carry sentinels.** `id_vendor` is the hex *string* `"0x3329"`,
   `battery.level` is `-1` for "no reading", and a device that is present but
-  unreadable (no udev rule) answers `status: "partial"` with an `errors` map.
+  unreadable — a powered-off headset, or a missing udev rule; the output is
+  identical — answers `status: "partial"` with an `errors` map.
 
 ## Decision
 
@@ -68,9 +69,13 @@ not what a reasonable implementation would assume:
   Sidetone, inactive time and the rest are write-only, so the frontend has to
   hold the last written value itself (#11's optimistic update, which it does
   anyway).
-- A device with no udev permission is *listed* but reports no values. That is
-  deliberately not an error here — turning it into the `no-permissions` screen
-  is binary detection's job (#9), which now has a signal to key on.
+- An unreadable device is *listed* but reports no values. Confirmed against
+  hardware: a **powered-off** headset produces exactly the `partial` + `errors`
+  shape, and real values appear the moment it is switched on. Missing udev
+  permissions produce the same shape, so `errors` alone cannot tell the two
+  apart — which is precisely why the adapter reports absence instead of
+  diagnosing. Distinguishing "headset off" from "no permission" is #9's problem,
+  and it will need more than this signal.
 - `CAP_EQUALIZER` / `CAP_PARAMETRIC_EQUALIZER` are not writable through this
   adapter: they take a list of band values, which `ParamValue` (int/bool)
   cannot express. The full equalizer (#16) extends `ParamValue` when it lands.
