@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { MAXWELL2_XBOX } from "../core/mock-backend";
 import { mountWithI18n } from "../test-support";
@@ -87,19 +87,48 @@ describe("screens that offer a retry", () => {
 });
 
 describe("device screens", () => {
-  it("lists every capability the device reports", () => {
+  it("renders one row per capability the device reports", () => {
     const { wrapper } = mountWithI18n(ReadyScreen, { props: { device: MAXWELL2_XBOX } });
 
     expect(wrapper.text()).toContain(MAXWELL2_XBOX.name);
-    expect(wrapper.findAll("li")).toHaveLength(MAXWELL2_XBOX.capabilities.length);
+    // Every reported capability but the battery, which the header shows.
+    expect(wrapper.findAll('[data-part="row"]')).toHaveLength(
+      MAXWELL2_XBOX.capabilities.length - 1,
+    );
   });
 
-  it("renders an unknown capability instead of failing on it", () => {
-    const device = { ...MAXWELL2_XBOX, capabilities: ["CAP_FROM_THE_FUTURE"] };
+  it("renders exactly the rows a smaller device reports", () => {
+    const device = { ...MAXWELL2_XBOX, capabilities: ["CAP_SIDETONE", "CAP_LIGHTS"] };
 
-    expect(mountWithI18n(ReadyScreen, { props: { device } }).wrapper.text()).toContain(
-      "CAP_FROM_THE_FUTURE",
-    );
+    const { wrapper } = mountWithI18n(ReadyScreen, { props: { device } });
+
+    expect(
+      wrapper.findAll("[data-capability]").map((row) => row.attributes("data-capability")),
+    ).toEqual(["CAP_SIDETONE", "CAP_LIGHTS"]);
+  });
+
+  it("skips a capability this build cannot render instead of failing on it", () => {
+    const logged = vi.spyOn(console, "info").mockImplementation(() => {});
+    const device = { ...MAXWELL2_XBOX, capabilities: ["CAP_FROM_THE_FUTURE", "CAP_SIDETONE"] };
+
+    const { wrapper } = mountWithI18n(ReadyScreen, { props: { device } });
+
+    expect(wrapper.findAll('[data-part="row"]')).toHaveLength(1);
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
+
+  it("hands a row the value written for its capability, and reports the next one", async () => {
+    const device = { ...MAXWELL2_XBOX, capabilities: ["CAP_SIDETONE"] };
+    const { wrapper } = mountWithI18n(ReadyScreen, {
+      props: { device, params: { CAP_SIDETONE: { kind: "int", value: 40 } } },
+    });
+
+    expect(wrapper.text()).toContain("40");
+
+    await wrapper.get("input").setValue(72);
+
+    expect(wrapper.emitted("write")).toEqual([["CAP_SIDETONE", { kind: "int", value: 72 }]]);
   });
 
   it.each([

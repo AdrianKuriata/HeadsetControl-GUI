@@ -19,6 +19,56 @@ export const en = {
     build: "Build and install headsetcontrol",
     udev: "The install step also adds the udev rules that let this app reach the headset.",
   },
+  // One entry per capability component in `src/features/` (#12). The names are
+  // the user's words for a capability, never the CAP_* identifier.
+  features: {
+    // Shown wherever the app has no value for a capability: the CLI cannot read
+    // most of them back, so a row starts out unknown rather than lying "off".
+    unknown: "—",
+    sidetone: {
+      name: "Sidetone",
+      description: "Hearing your own voice",
+      off: "off",
+    },
+    chatmix: {
+      name: "Chatmix",
+      description: "Game / chat balance",
+      game: "Game",
+      chat: "Chat",
+    },
+    noiseFilter: {
+      name: "Noise filter",
+      description: "Microphone noise reduction",
+      off: "off",
+      low: "low",
+      high: "high",
+    },
+    voicePrompts: {
+      name: "Voice prompts",
+      on: "on",
+      off: "off",
+      active: "active",
+    },
+    lights: {
+      name: "Lights",
+      description: "Headset LEDs",
+      on: "on",
+      off: "off",
+    },
+    inactiveTime: {
+      name: "Auto power-off",
+      description: "After being idle",
+      never: "never",
+      minutes: "{count} min",
+      shorter: "Shorter",
+      longer: "Longer",
+    },
+    equalizer: {
+      name: "Equalizer",
+      description: "Built-in presets",
+      preset: "Preset {number}",
+    },
+  },
   screens: {
     checking: {
       title: "Checking headsetcontrol",
@@ -77,6 +127,52 @@ export const pl: Messages = {
     dependencies: "Zainstaluj zależności do budowania",
     build: "Zbuduj i zainstaluj headsetcontrol",
     udev: "Instalacja dodaje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
+  },
+  features: {
+    unknown: "—",
+    sidetone: {
+      name: "Sidetone",
+      description: "Odsłuch własnego głosu",
+      off: "wył.",
+    },
+    chatmix: {
+      name: "Chatmix",
+      description: "Balans gra — czat",
+      game: "Gra",
+      chat: "Czat",
+    },
+    noiseFilter: {
+      name: "Filtr szumów",
+      description: "Redukcja szumów mikrofonu",
+      off: "wył.",
+      low: "niski",
+      high: "wysoki",
+    },
+    voicePrompts: {
+      name: "Komunikaty głosowe",
+      on: "wł.",
+      off: "wył.",
+      active: "aktywne",
+    },
+    lights: {
+      name: "Podświetlenie",
+      description: "Diody zestawu",
+      on: "wł.",
+      off: "wył.",
+    },
+    inactiveTime: {
+      name: "Auto-wyłączanie",
+      description: "Po bezczynności",
+      never: "nigdy",
+      minutes: "{count} min",
+      shorter: "Krócej",
+      longer: "Dłużej",
+    },
+    equalizer: {
+      name: "Korektor",
+      description: "Presety fabryczne",
+      preset: "Preset {number}",
+    },
   },
   screens: {
     checking: {
