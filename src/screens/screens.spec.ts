@@ -77,7 +77,7 @@ describe("device screens", () => {
   it("dims the last known values when the device is lost", () => {
     const { wrapper } = mountWithI18n(DeviceLostScreen, { props: { device: MAXWELL2_XBOX } });
 
-    expect(wrapper.get("section").classes()).toContain("screen--dimmed");
+    expect(wrapper.get("section").classes()).toContain("opacity-50");
     expect(wrapper.text()).toContain("Connection lost");
   });
 });

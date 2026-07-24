@@ -1,0 +1,84 @@
+/*
+ * The one stylesheet the app bootstrap imports: fonts, the Tailwind build and
+ * the Mono design tokens. Components carry no <style> blocks — everything is a
+ * utility class (ADR 0009).
+ *
+ * Fonts are bundled by Vite rather than fetched from a CDN: the app must work
+ * offline and its Tauri ACL allows no network beyond the updater. Only the
+ * weights the mock uses ship, in the `latin` + `latin-ext` subsets — `latin-ext`
+ * is what carries the Polish diacritics.
+ */
+@import "@fontsource/inter-tight/latin-300.css";
+@import "@fontsource/inter-tight/latin-400.css";
+@import "@fontsource/inter-tight/latin-500.css";
+@import "@fontsource/inter-tight/latin-600.css";
+@import "@fontsource/inter-tight/latin-ext-300.css";
+@import "@fontsource/inter-tight/latin-ext-400.css";
+@import "@fontsource/inter-tight/latin-ext-500.css";
+@import "@fontsource/inter-tight/latin-ext-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-400.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-500.css";
+
+@import "tailwindcss";
+
+/*
+ * Design tokens, ported verbatim from the approved mock
+ * (docs/maxwell-control-mono.html, its `:root` block). Naming them in Tailwind's
+ * `--color-*` / `--font-*` namespaces is what turns them into utilities:
+ * `bg-bg`, `text-ink`, `border-hair`, `font-mono`, …
+ */
+@theme {
+  --color-bg: #0a0a0a;
+  --color-ink: #f5f5f3;
+  --color-mid: #8a8a86;
+  --color-low: #55554f;
+  --color-hair: #1f1f1d;
+  --color-hair-soft: #161614;
+
+  /* The mock's default accent is Xbox green. Setting `data-platform` from the
+     connected device's PID (and the neutral white fallback) is issue #15. */
+  --color-accent: #43b34a;
+  --color-accent-dim: rgb(67 179 74 / 14%);
+
+  --font-sans: "Inter Tight", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  /*
+   * Platform accent — a core mechanism, not a skin. Tailwind utilities compile
+   * to `var(--color-accent)`, so re-pointing the variable under a
+   * `[data-platform]` scope re-themes every `*-accent` utility at once. This is
+   * the reason components never name a platform.
+   */
+  [data-platform="ps"] {
+    --color-accent: #3a86d4;
+    --color-accent-dim: rgb(58 134 212 / 14%);
+  }
+
+  [data-platform="nintendo"] {
+    --color-accent: #e4404b;
+    --color-accent-dim: rgb(228 64 75 / 14%);
+  }
+
+  /*
+   * The only two global rules. Both are accessibility guarantees that must hold
+   * even where someone forgets a variant, which is exactly what a utility class
+   * cannot promise:
+   */
+  :focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}

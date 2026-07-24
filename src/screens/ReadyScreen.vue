@@ -13,11 +13,13 @@ defineProps<{ device: Device }>();
 </script>
 
 <template>
-  <section class="screen">
-    <h1>{{ device.name }}</h1>
-    <p>{{ device.product }}</p>
-    <h2>{{ t("screens.ready.capabilities") }}</h2>
-    <ul>
+  <section class="flex h-full flex-col justify-center gap-3 py-10">
+    <h1 class="text-[15px] font-semibold tracking-[0.22em] uppercase">{{ device.name }}</h1>
+    <p class="max-w-[62ch] text-mid">{{ device.product }}</p>
+    <h2 class="font-mono text-[10px] tracking-[0.24em] text-low uppercase">
+      {{ t("screens.ready.capabilities") }}
+    </h2>
+    <ul class="flex flex-col gap-1 font-mono text-[11.5px] tracking-[0.08em] text-mid">
       <li v-for="capability in device.capabilities" :key="capability">{{ capability }}</li>
     </ul>
   </section>
