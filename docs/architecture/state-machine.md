@@ -1,8 +1,7 @@
 # Application state machine
 
-> **Status:** implemented (#5). The `checking-binary` probe is still a
-> placeholder — real binary/version/permission detection lands with #9, and the
-> `ready` screen becomes the real configurator with #12.
+> **Status:** implemented (#5), with real binary/version/permission detection
+> behind it (#9). The `ready` screen becomes the real configurator with #12.
 
 The app is an **explicit** state machine; every state has its own full screen.
 No screen ever renders partial/undefined state.
@@ -29,9 +28,9 @@ stateDiagram-v2
 | State | Screen shows |
 |---|---|
 | `checking-binary` | Startup probe: locate `headsetcontrol`, check version |
-| `missing-binary` | Install instructions for `headsetcontrol`, per distribution |
-| `bad-version` | Found binary is too old — required minimum + upgrade instructions |
-| `no-permissions` | Ready-to-copy udev rule + a "check again" button |
+| `missing-binary` | Per-distribution dependencies + upstream's source build |
+| `bad-version` | Found version vs. required minimum, then the same build steps |
+| `no-permissions` | Ready-to-copy `headsetcontrol -u` udev rules + "check again" |
 | `no-device` | Binary fine, no supported headset connected |
 | `ready(device)` | The main configurator, rendered from the device's capabilities |
 | `device-lost` | Values dimmed in place; auto-returns to `ready` on hotplug |
@@ -44,6 +43,29 @@ stateDiagram-v2
   fallback) drives `no-device ↔ ready ↔ device-lost`. Connecting/disconnecting a
   headset updates the UI by itself — never requires a restart.
 - **Retry buttons** on the three binary/permission screens re-run the probe.
+
+## What the probe asks
+
+Two questions, in this order ([ADR 0010](../decisions/0010-binary-detection-and-permission-diagnosis.md)):
+
+1. `backend.detect()` — one CLI call whose json envelope carries the binary's
+   own version *and* the device list. It answers `ready`, `missing_binary`,
+   `bad_version { found, required }` or `no_permissions`; `found` is `null` when
+   the binary's output could not be read at all. Rust decides all of it
+   (`backend/detect.rs`), including the minimum version, so the UI holds no
+   version knowledge.
+2. `backend.listDevices()` — only once detection passed, because a device list
+   read through a binary that cannot reach the hardware would just look like
+   "no headset connected".
+
+`no-permissions` is diagnosed at the device node, never from the CLI's `errors`
+map: a powered-off headset and a missing udev rule produce identical output, so
+the app opens the matching `/dev/hidraw*` instead and only blames udev when
+every listed device refuses.
+
+**Hotplug does not re-detect.** `refreshDevices()` re-lists devices and nothing
+else — a plugged headset is no reason to re-check a binary, and re-probing
+would double the CLI spawns on every event.
 
 ## Error handling inside `ready`
 
@@ -59,8 +81,12 @@ These do **not** change the app state:
 - [`src/core/state-machine.ts`](../../src/core/state-machine.ts) — `AppState`,
   `AppEvent` and the pure `transition(state, event)`. All the logic, none of the
   rendering.
-- [`src/core/probe.ts`](../../src/core/probe.ts) — the startup probe. Until #9 it
-  asks the backend for devices and reports every failure as `missing-binary`.
+- [`src/core/probe.ts`](../../src/core/probe.ts) — `probe()` (detection, then
+  the device list) and `refreshDevices()` (the hotplug path). Maps the backend's
+  `Detection` verdicts onto `ProbeFailure`.
+- [`src-tauri/src/backend/detect.rs`](../../src-tauri/src/backend/detect.rs) —
+  the diagnosis itself: minimum version, and the `DeviceAccess` seam whose real
+  hidraw implementation lives in `backend/exec.rs`.
 - [`src/screens/`](../../src/screens/) — one component per state, mapped by
   `screens/registry.ts` (`SCREENS` + `screenProps`). Screens are the only place
   OS-specific *content* (distro install instructions, udev rules) is allowed on

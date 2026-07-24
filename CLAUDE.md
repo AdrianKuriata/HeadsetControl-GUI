@@ -172,9 +172,15 @@ internal domain types and never reaches the UI. It is pure: the exec is injected
 `CliRunner` so the whole adapter is tested from recorded fixtures with no binary installed,
 and `exec.rs` holds the single `Command::new`. **Never trust the CLI's exit code** — it is 0
 even for a failed write; success is decided by parsing the `actions` array
-([ADR 0009](docs/decisions/0009-headsetcontrol-adapter-seam.md)). A future native HID backend
-plugs in behind the same trait without frontend changes. Hotplug is a udev monitor emitting a
-`devices-changed` event, with polling as fallback.
+([ADR 0009](docs/decisions/0009-headsetcontrol-adapter-seam.md)). `detect.rs` answers the
+startup question — `detect() -> Detection` (ready / missing binary / bad version / no
+permissions): the minimum `headsetcontrol` version is one `const` there, and permissions are
+diagnosed by opening the hidraw node behind a second injected seam, `DeviceAccess`, never from
+the CLI's `errors` map — a powered-off headset looks identical there
+([ADR 0010](docs/decisions/0010-binary-detection-and-permission-diagnosis.md)). A future native
+HID backend plugs in behind the same trait without frontend changes. Hotplug is a udev monitor
+emitting a `devices-changed` event, with polling as fallback; it re-lists devices only and never
+re-runs detection.
 
 Frontend seams: `src/core/backend.ts` is the *only* place calling `invoke()`/`listen()`;
 `src/core/types.gen.ts` is generated from Rust via tauri-specta (single source of truth).
@@ -196,7 +202,8 @@ src-tauri/src/
 └── backend/
     ├── mod.rs            # trait HeadsetBackend  ← DIP seam
     ├── headsetcontrol.rs # adapter: parse + map (anti-corruption layer); pure, gated 100%
-    ├── exec.rs           # the only Command::new — injected as CliRunner, excluded from coverage
+    ├── detect.rs         # startup verdict: min version + DeviceAccess seam; pure, gated 100%
+    ├── exec.rs           # the only Command::new + hidraw lookup — injected, excluded from coverage
     └── hotplug.rs        # udev monitor → frontend events (OS-specific allowed here)
 
 src/
@@ -247,3 +254,8 @@ HeadsetControl. Tracked in issue #18: patch prepared for `SUPPORTED_PRODUCT_IDS`
 `lib/devices/audeze_maxwell2.hpp`; hardware testing and the PR to `Sapd/HeadsetControl`
 are still open, as is the `0x4b28 → 'xbox'` entry in `profiles/audeze-maxwell2.ts` (#17).
 Hardware testing requires the user (physical device) — see "When to ask the user".
+
+Maxwell 2 support at all (the PS/PC version, upstream #506) is newer than the last release
+`3.1.0`, so **no released `headsetcontrol` works with this headset** — everyone builds from
+source today. That is why `MIN_VERSION` in `backend/detect.rs` is a provisional `3.2.0` and
+the install screens teach a source build; correct both when upstream tags a release.
