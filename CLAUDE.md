@@ -59,7 +59,10 @@ obvious regressions — committed as `fix: ...` referencing no issue).
 All gates green locally — do not push red and let CI find it (wastes the user's CI minutes).
 - **`make ci`** — the full local gate (lint + coverage + E2E). Individual gates:
   `make fe-check` / `make rs-check`, or finer targets (`make help` lists them).
-- During bootstrap (before issues #1–#3 land) use whatever subset already exists.
+- E2E lives in `e2e/*.e2e.ts` (Playwright on the mock build). It boots the app
+  with a scripted scenario through two mock-only globals and asserts on
+  `data-part` attributes; no retries, no `waitForTimeout`
+  (`docs/architecture/testing.md`). Adding a flow = a new `*.e2e.ts` file.
 
 ### 5. Commit, push, PR
 - Conventional Commits, English, issue referenced: `feat(eq): draggable preset points (#16)`.

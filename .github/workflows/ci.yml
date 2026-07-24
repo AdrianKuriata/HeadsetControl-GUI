@@ -61,6 +61,34 @@ jobs:
       # them would only add its wall-clock to theirs.
       - run: make build-ci
 
+  e2e:
+    name: E2E
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # The browser is a ~150 MB download; caching it keys on the lockfile, so a
+      # Playwright bump fetches a fresh one and nothing else does.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      # Skips the download when the cache hit; still installs the system libs.
+      - run: npx playwright install --with-deps chromium
+      # Builds the app against MockBackend and drives it — no Tauri shell, no
+      # hardware. The real IPC path is the smoke suite (#14).
+      - run: make fe-e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   commits:
     name: Commit messages
     if: github.event_name == 'pull_request'

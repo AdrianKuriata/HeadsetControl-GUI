@@ -4,6 +4,7 @@ import { tauriBackend } from "./backend";
 import {
   MOCK_BACKEND_FLAG,
   MOCK_BACKEND_GLOBAL,
+  MOCK_SCENARIO_GLOBAL,
   createBackend,
   resetBackend,
 } from "./create-backend";
@@ -11,7 +12,9 @@ import { MockBackend } from "./mock-backend";
 
 describe("createBackend", () => {
   afterEach(() => {
-    delete (window as unknown as Record<string, unknown>)[MOCK_BACKEND_GLOBAL];
+    const global = window as unknown as Record<string, unknown>;
+    delete global[MOCK_BACKEND_GLOBAL];
+    delete global[MOCK_SCENARIO_GLOBAL];
     resetBackend();
   });
 
@@ -37,6 +40,20 @@ describe("createBackend", () => {
     resetBackend();
 
     expect(createBackend(MOCK_BACKEND_FLAG)).not.toBe(first);
+  });
+
+  it("boots the mock with the scenario an E2E test parked for it", () => {
+    (window as unknown as Record<string, unknown>)[MOCK_SCENARIO_GLOBAL] = { devices: [] };
+
+    const backend = createBackend(MOCK_BACKEND_FLAG) as MockBackend;
+
+    expect(backend.scenario.devices).toEqual([]);
+  });
+
+  it("boots the mock with its own defaults when nothing was parked", () => {
+    const backend = createBackend(MOCK_BACKEND_FLAG) as MockBackend;
+
+    expect(backend.scenario.devices).toHaveLength(1);
   });
 
   it("exposes the mock on window so E2E tests can script it", () => {
