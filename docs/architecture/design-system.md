@@ -13,7 +13,7 @@ Styling is **Tailwind v4**, configured entirely in CSS
 | Path | Holds |
 |---|---|
 | `src/styles/index.css` | the only stylesheet `main.ts` imports: `@fontsource` imports, `@import "tailwindcss"`, the `@theme` tokens, and the two global base rules |
-| `src/controls/` | the H-components (`HSlider`, `HOptions`, `HStepper`, `HReadout`) |
+| `src/controls/` | the H-components (`HSlider`, `HOptions`, `HStepper`, `HReadout`, `HToast`) |
 | `index.html` | document-level utilities (`bg-bg`, `font-sans`, the 900 px floor) |
 
 Fonts are **bundled**, never fetched: `@fontsource/inter-tight` and

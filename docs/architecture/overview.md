@@ -71,13 +71,18 @@ flowchart LR
 - `core/mock-backend.ts` — a scripted `HeadsetBackend` (devices, states, latency,
   write errors, hung calls, hotplug) selected with `VITE_BACKEND=mock`
   (`make dev-mock`); the E2E suite drives it through `window.__headsetDeckMock`.
-- `core/stores/` — Pinia: `devices.ts` (list, selection, hotplug),
-  `device.ts` (parameter state; writes are optimistic with rollback + toast).
+- `core/stores/` — Pinia: `devices.ts` (the connected list, and the selection
+  kept as an id so a replugged headset stays selected) and `device.ts` (the
+  values of the focused headset: readings from the refresh loop, the last value
+  written per capability, and the write failure the toast shows). Actions take
+  the `HeadsetBackend` as an argument; writes are optimistic with a
+  ticket-guarded rollback
+  ([ADR 0012](../decisions/0012-stores-optimistic-writes.md)).
 - `profiles/` — `DeviceProfile` resolved by `(vid, pid)` with a
   `GenericProfile` fallback; holds EQ preset names, band frequencies, and the
   optional `variants: { [pid]: platform }` map driving platform accent colors.
-- `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout);
-  features never use raw inputs.
+- `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout,
+  HToast); features never use raw inputs.
 - `i18n/` — vue-i18n (pl + en, en fallback); every user-facing string is a
   catalog key, enforced by the `vue/no-bare-strings-in-template` lint rule.
 - `features/` — one capability = one component; `features/registry.ts` maps

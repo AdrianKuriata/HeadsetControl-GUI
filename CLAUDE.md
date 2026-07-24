@@ -188,7 +188,12 @@ and a 3 s polling fallback, used off Linux, when the monitor will not open, and 
 
 Frontend seams: `src/core/backend.ts` is the *only* place calling `invoke()`/`listen()`;
 `src/core/types.gen.ts` is generated from Rust via tauri-specta (single source of truth).
-Parameter writes are optimistic with rollback + toast on failure.
+The Pinia stores take the backend as an **argument** (never reaching for a singleton) and
+own the values, not the lifecycle: App.vue keeps the hotplug subscription and the refresh
+loop, `devices.ts` holds the list plus a selection kept as an id, `device.ts` holds the
+focused headset's readings and last-written values. Parameter writes are optimistic; a
+refusal rolls back — unless a newer write to the same capability already landed — and
+surfaces as a dismissible toast ([ADR 0012](docs/decisions/0012-stores-optimistic-writes.md)).
 
 The app is an explicit state machine, each state having its own screen:
 `checking-binary → missing-binary | bad-version | no-permissions(udev) | no-device | ready(device) | device-lost`.
@@ -224,7 +229,7 @@ src/
 │   ├── generic.ts
 │   └── audeze-maxwell2.ts
 ├── styles/index.css      # the only stylesheet: fonts + Tailwind + @theme tokens (main.ts imports it)
-├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout
+├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout, HToast
 │                         #   no strings, no domain logic — labels/values arrive as props/slots
 ├── features/             # 1 capability = 1 component (SRP)
 │   ├── SidetoneRow.vue, ChatmixRow.vue, EqualizerSection.vue, …

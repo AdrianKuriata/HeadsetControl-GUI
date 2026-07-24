@@ -79,8 +79,9 @@ state change.
 
 These do **not** change the app state:
 
-- **Parameter write fails** → roll back the optimistic update, show a discreet
-  toast. (Store logic: issue #11.)
+- **Parameter write fails** → the device store rolls the optimistic value back
+  and records the failure; `App.vue` renders it as a discreet toast the user
+  dismisses ([ADR 0012](../decisions/0012-stores-optimistic-writes.md)).
 - **Unknown capability** in device JSON → logged and ignored, the row simply
   doesn't render. Forward compatibility — never a crash.
 

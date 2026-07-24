@@ -1,8 +1,8 @@
 # Capabilities — the business logic
 
-> **Status:** the adapter (#8) is built and reconciled below; the frontend half
-> lands with #11 (stores), #12 (feature registry), #15 (variants), #17 (Maxwell 2
-> profile) — reconcile this doc in those PRs.
+> **Status:** the adapter (#8) and the stores (#11) are built and reconciled
+> below; the rest of the frontend half lands with #12 (feature registry),
+> #15 (variants), #17 (Maxwell 2 profile) — reconcile this doc in those PRs.
 
 The whole product rests on one idea: **the UI is rendered from what the device
 says it can do** (`headsetcontrol --output json` → `capabilities` array), never
@@ -69,9 +69,16 @@ write-only in the CLI, which is why the store holds the last written value
   default.
 - **Capability absent** (feature removed, device variant lacks it): the row
   simply doesn't render. No dead controls.
-- **Writes are optimistic**: store applies the value immediately, calls the
-  backend, rolls back + toasts on failure (see
-  [state-machine.md](state-machine.md)).
+- **Writes are optimistic**: `device.write(backend, capability, value)` applies
+  the value immediately, calls the backend, and on a refusal rolls back and
+  records the failure the toast shows. The rollback is skipped when a newer
+  write to the same capability has already landed, so a slow failure cannot
+  clobber what the user did next
+  ([ADR 0012](../decisions/0012-stores-optimistic-writes.md)).
+- **The store is the record of what was set**: with only battery and chatmix
+  readable, `device.params[capability]` is where a feature component reads the
+  current value from, and `device.readings` carries what the refresh loop read
+  back.
 - Values shown in UI come from validated domain types (`types.gen.ts`), never
   raw JSON — the adapter is an anti-corruption layer
   (see [overview.md](overview.md)).
