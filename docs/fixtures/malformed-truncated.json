@@ -1,0 +1,10 @@
+{
+  "name": "HeadsetControl",
+  "version": "continuous-52-gfe086cd-modified",
+  "api_version": "1.4",
+  "hidapi_version": "0.14.0",
+  "device_count": 1,
+  "devices": [
+    {
+      "status": "success",
+      "device": "Au

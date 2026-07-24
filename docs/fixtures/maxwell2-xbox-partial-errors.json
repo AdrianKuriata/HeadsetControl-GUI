@@ -1,0 +1,44 @@
+{
+  "name": "HeadsetControl",
+  "version": "continuous-52-gfe086cd-modified",
+  "api_version": "1.4",
+  "hidapi_version": "0.14.0",
+  "device_count": 1,
+  "devices": [
+    {
+      "status": "partial",
+      "device": "Audeze Maxwell 2",
+      "vendor": "Audeze LLC",
+      "product": "Audeze Maxwell XBOX Dongle",
+      "id_vendor": "0x3329",
+      "id_product": "0x4b28",
+      "capabilities": [
+        "CAP_SIDETONE",
+        "CAP_BATTERY_STATUS",
+        "CAP_INACTIVE_TIME",
+        "CAP_CHATMIX_STATUS",
+        "CAP_VOICE_PROMPTS",
+        "CAP_EQUALIZER_PRESET",
+        "CAP_NOISE_FILTER"
+      ],
+      "capabilities_str": [
+        "sidetone",
+        "battery",
+        "inactive time",
+        "chatmix",
+        "voice prompts",
+        "equalizer preset",
+        "microphone noise filter"
+      ],
+      "battery": {
+        "status": "BATTERY_UNAVAILABLE",
+        "level": -1
+      },
+      "equalizer_presets_count": 10,
+      "errors": {
+        "battery": "Could not open device",
+        "chatmix": "Could not open device"
+      }
+    }
+  ]
+}

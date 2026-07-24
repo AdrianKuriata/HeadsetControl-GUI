@@ -29,11 +29,25 @@ same thresholds and blocks merge.
 
 ## Contract fixtures
 
-`docs/fixtures/` holds recorded `headsetcontrol --output json` outputs (first:
-[`maxwell2-xbox-output-json.json`](../fixtures/maxwell2-xbox-output-json.json)).
-The Rust parser is tested against them so that **upgrading the binary and
+`docs/fixtures/` holds `headsetcontrol --output json` output. The Rust adapter is
+tested against it (`backend/headsetcontrol.rs`) so that **upgrading the binary and
 breaking the format turns CI red** instead of crashing users. When touching the
 parser: keep existing fixtures, add new ones for new formats.
+
+| Fixture | Source | Covers |
+|---|---|---|
+| [`maxwell2-xbox-output-json.json`](../fixtures/maxwell2-xbox-output-json.json) | recorded | a healthy device: capabilities, battery level, chatmix |
+| [`maxwell2-xbox-partial-errors.json`](../fixtures/maxwell2-xbox-partial-errors.json) | recorded | present but unreadable — `status: "partial"`, `level: -1`, an `errors` map (a missing udev rule; #9's signal) |
+| [`test-device-multi.json`](../fixtures/test-device-multi.json) | recorded (`--test-device`) | two devices at once, and the CLI's full capability vocabulary |
+| [`write-actions-mixed.json`](../fixtures/write-actions-mixed.json) | recorded | the write shape: an `actions` array with one success and one failure |
+| [`no-devices.json`](../fixtures/no-devices.json) | hand-authored | nothing connected — an empty list, not an error |
+| [`unknown-capability.json`](../fixtures/unknown-capability.json) | hand-authored | `CAP_FROM_THE_FUTURE` passing through untouched; a charging battery |
+| [`malformed-truncated.json`](../fixtures/malformed-truncated.json) | hand-authored | output cut off mid-string — must be rejected, never half-read |
+
+Recorded fixtures are byte-identical to what the binary printed, so
+`docs/fixtures/` is in `.prettierignore` (the truncated one cannot be parsed at
+all, which is the point). Hand-authored ones exist because hardware cannot
+produce them on demand.
 
 ## Where tests live
 

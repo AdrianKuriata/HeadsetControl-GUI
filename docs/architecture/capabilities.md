@@ -1,7 +1,7 @@
 # Capabilities — the business logic
 
-> **Status:** specified (PROJECT.md §3). Implementation lands with issues #8
-> (adapter), #11 (stores), #12 (feature registry), #15 (variants), #17 (Maxwell 2
+> **Status:** the adapter (#8) is built and reconciled below; the frontend half
+> lands with #11 (stores), #12 (feature registry), #15 (variants), #17 (Maxwell 2
 > profile) — reconcile this doc in those PRs.
 
 The whole product rests on one idea: **the UI is rendered from what the device
@@ -45,10 +45,28 @@ interface-segregated: a profile declares only what it overrides.
 | **Frontend profiles**: model quirks, preset names, platform variants | how JSON is fetched or validated |
 | **Feature components**: how to render one capability | which device they serve, other capabilities |
 
+## How a capability is read and written (the adapter, #8)
+
+Reading is generic: `capabilities` stays a `Vec<String>` all the way to the UI,
+so a `CAP_*` this build has never heard of arrives untouched. Rust never
+enumerates the ones it "supports".
+
+Writing needs one piece of vocabulary — which CLI flag a capability is set
+through — so `backend/headsetcontrol.rs` holds a `CAP_* → flag` table
+(`CAP_SIDETONE` → `-s`, `CAP_NOISE_FILTER` → `--noise-filter`, …). That is
+*capability* knowledge, not model knowledge: every headset reporting
+`CAP_SIDETONE` is written the same way. A capability outside the table is an
+error rather than a silent no-op.
+
+Only battery and chatmix can be **read back**; every other capability is
+write-only in the CLI, which is why the store holds the last written value
+([ADR 0009](../decisions/0009-headsetcontrol-adapter-seam.md)).
+
 ## Rules
 
-- **Unknown capability** (new binary, older GUI): logged, ignored, nothing
-  renders for it — never a crash. Forward compatibility by default.
+- **Unknown capability** (new binary, older GUI): passed through by the adapter,
+  and nothing renders for it in the UI — never a crash. Forward compatibility by
+  default.
 - **Capability absent** (feature removed, device variant lacks it): the row
   simply doesn't render. No dead controls.
 - **Writes are optimistic**: store applies the value immediately, calls the
