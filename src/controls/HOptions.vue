@@ -6,7 +6,9 @@ import { computed, ref } from "vue";
 // is a *single* tab stop (roving tabindex) and arrows/Home/End move the
 // selection inside it — tabbing through every option would be wrong.
 const props = defineProps<{
-  modelValue: T;
+  /** `null` selects nothing — the value is not known yet (feature rows do
+   * this for a capability the app has never written). */
+  modelValue: T | null;
   options: readonly { value: T; label: string }[];
   /** Accessible name for the group; features pass a translated string. */
   label: string;
@@ -16,7 +18,7 @@ const emit = defineEmits<{ "update:modelValue": [value: T] }>();
 
 const items = ref<HTMLElement[]>([]);
 
-/** -1 (nothing matches) falls back to the first option, so a tab stop always exists. */
+/** -1 (nothing matches, including `null`) falls back to the first option, so a tab stop always exists. */
 const selected = computed(() => props.options.findIndex((o) => o.value === props.modelValue));
 const focusIndex = computed(() => Math.max(selected.value, 0));
 

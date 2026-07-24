@@ -12,6 +12,7 @@ import { INITIAL_STATE, transition } from "./core/state-machine";
 import type { AppEvent, AppState } from "./core/state-machine";
 import { useDeviceStore } from "./core/stores/device";
 import { useDevicesStore } from "./core/stores/devices";
+import type { ParamValue } from "./core/types.gen";
 import { SCREENS, screenProps } from "./screens/registry";
 
 // The state machine lives here (PROJECT.md §3.3): this component owns the
@@ -27,7 +28,9 @@ const state = ref<AppState>(INITIAL_STATE);
 const { t } = useI18n({ useScope: "global" });
 
 const screen = computed(() => SCREENS[state.value.kind]);
-const props = computed(() => screenProps(state.value, device.readings));
+const props = computed(() =>
+  screenProps(state.value, { readings: device.readings, params: device.params }),
+);
 
 function dispatch(event: AppEvent): void {
   if (event.kind === "probe-succeeded" || event.kind === "devices-changed") {
@@ -39,6 +42,11 @@ function dispatch(event: AppEvent): void {
 
 async function runProbe(): Promise<void> {
   dispatch(await probe(backend));
+}
+
+/** A feature row asked for a value; which capability it was is its business. */
+function onWrite(capability: string, value: ParamValue): void {
+  void device.write(backend, capability, value);
 }
 
 async function retry(): Promise<void> {
@@ -90,7 +98,7 @@ onUnmounted(() => {
   <!-- The app shell from the mock: a centred, fixed-width column. Document-level
        styling (tokens, focus ring, fonts) lives in src/styles/index.css. -->
   <main class="mx-auto flex h-full max-w-[1000px] flex-col px-12">
-    <component :is="screen" v-bind="props" @retry="retry" />
+    <component :is="screen" v-bind="props" @retry="retry" @write="onWrite" />
     <!-- A refused write is reported here and nowhere else: the screen keeps
          showing the device, with the value already rolled back (#11). -->
     <HToast

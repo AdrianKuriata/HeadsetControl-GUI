@@ -26,7 +26,8 @@ export default defineConfig({
       thresholds: {
         "src/core/**": { lines: 100, branches: 100, functions: 100, statements: 100 },
         "src/profiles/**": { lines: 100, branches: 100, functions: 100, statements: 100 },
-        "src/features/registry.ts": { lines: 100, branches: 100, functions: 100, statements: 100 },
+        // The registry and the row contract are logic, not presentation.
+        "src/features/**/*.ts": { lines: 100, branches: 100, functions: 100, statements: 100 },
         "src/features/**/*.vue": { lines: 90, branches: 90, functions: 90, statements: 90 },
         "src/controls/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         "src/screens/**/*.vue": { lines: 90, branches: 90, functions: 90, statements: 90 },
