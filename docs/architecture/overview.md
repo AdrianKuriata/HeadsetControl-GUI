@@ -82,11 +82,13 @@ flowchart LR
   `GenericProfile` fallback; holds EQ preset names, band frequencies, and the
   optional `variants: { [pid]: platform }` map driving platform accent colors.
 - `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout,
-  HToast); features never use raw inputs.
+  HToast, HRow — the three-column row layout); features never use raw inputs.
 - `i18n/` — vue-i18n (pl + en, en fallback); every user-facing string is a
   catalog key, enforced by the `vue/no-bare-strings-in-template` lint rule.
 - `features/` — one capability = one component; `features/registry.ts` maps
-  capability → component (OCP). Unknown capability: logged and ignored.
+  capability → component (OCP) and `features/contract.ts` fixes the props every
+  row takes and the one event it emits. Unknown capability: logged and ignored
+  ([ADR 0014](../decisions/0014-feature-row-contract.md)).
 
 ## App state machine
 
