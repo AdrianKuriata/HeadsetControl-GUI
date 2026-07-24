@@ -19,6 +19,11 @@ package-lock.json
 # Approved visual reference — kept byte-identical to the design authority
 docs/maxwell-control-mono.html
 
+# Contract fixtures: recorded headsetcontrol output, kept byte-identical to what
+# the binary printed. One of them is deliberately truncated mid-string, which is
+# the point — the parser must reject it — and Prettier cannot parse it at all.
+docs/fixtures
+
 # Prose is not formatted: Prettier rewrites list markers and continuation
 # indentation in the hand-written specs/ADRs, which changes how they render
 # (see docs/decisions/0003-lint-and-format-toolchain.md).

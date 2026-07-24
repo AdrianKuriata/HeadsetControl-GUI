@@ -18,7 +18,9 @@ const MANIFEST = "src-tauri/Cargo.toml";
 // Bootstrap (`main.rs`, `lib.rs`) plus `commands.rs`: the commands are one-line
 // delegations to the backend behind Tauri's managed state — unit-testing them
 // would test Tauri, and the real IPC path is covered by the smoke E2E (#14).
-const BOOTSTRAP = "src/(main|lib|commands)\\.rs$";
+// `backend/exec.rs` joins them: it is the single `Command::new` that lets the
+// adapter beside it stay pure and fully gated (ADR 0009).
+const BOOTSTRAP = "src/(main|lib|commands)\\.rs$|src/backend/exec\\.rs$";
 
 const cargo = spawnSync(
   "cargo",

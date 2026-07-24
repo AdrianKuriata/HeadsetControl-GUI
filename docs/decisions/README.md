@@ -51,3 +51,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0006](0006-app-state-machine.md) | The app state machine: pure transitions, screens as data, a placeholder probe | Accepted |
 | [0007](0007-i18n-vue-i18n.md) | Internationalization: vue-i18n from the start, Composition mode, a lint gate | Accepted |
 | [0008](0008-tailwind-v4-mono-design-system.md) | Tailwind v4 as the styling engine, with the Mono tokens as its theme | Accepted |
+| [0009](0009-headsetcontrol-adapter-seam.md) | The headsetcontrol adapter: an injected runner, parsing as the only source of truth | Accepted |

@@ -167,10 +167,14 @@ The app is a GUI over the external `headsetcontrol` CLI. Two rules shape everyth
    lives in `src/profiles/`, resolved by `(vid, pid)` with a `GenericProfile` fallback.
 
 Backend layering (`src-tauri/src/backend/`): `trait HeadsetBackend` is the seam (DIP). The
-`headsetcontrol.rs` adapter execs the binary and acts as an **anti-corruption layer** — raw
-JSON is validated into internal domain types and never reaches the UI. A future native HID
-backend plugs in behind the same trait without frontend changes. Hotplug is a udev monitor
-emitting a `devices-changed` event, with polling as fallback.
+`headsetcontrol.rs` adapter is the **anti-corruption layer** — raw JSON is validated into
+internal domain types and never reaches the UI. It is pure: the exec is injected as a
+`CliRunner` so the whole adapter is tested from recorded fixtures with no binary installed,
+and `exec.rs` holds the single `Command::new`. **Never trust the CLI's exit code** — it is 0
+even for a failed write; success is decided by parsing the `actions` array
+([ADR 0009](docs/decisions/0009-headsetcontrol-adapter-seam.md)). A future native HID backend
+plugs in behind the same trait without frontend changes. Hotplug is a udev monitor emitting a
+`devices-changed` event, with polling as fallback.
 
 Frontend seams: `src/core/backend.ts` is the *only* place calling `invoke()`/`listen()`;
 `src/core/types.gen.ts` is generated from Rust via tauri-specta (single source of truth).
@@ -191,7 +195,8 @@ src-tauri/src/
 ├── commands.rs           # thin IPC commands (types exported to TS)
 └── backend/
     ├── mod.rs            # trait HeadsetBackend  ← DIP seam
-    ├── headsetcontrol.rs # adapter: exec binary + parse (anti-corruption layer)
+    ├── headsetcontrol.rs # adapter: parse + map (anti-corruption layer); pure, gated 100%
+    ├── exec.rs           # the only Command::new — injected as CliRunner, excluded from coverage
     └── hotplug.rs        # udev monitor → frontend events (OS-specific allowed here)
 
 src/
