@@ -1,8 +1,8 @@
 # Capabilities — the business logic
 
-> **Status:** the adapter (#8) and the stores (#11) are built and reconciled
-> below; the rest of the frontend half lands with #12 (feature registry),
-> #15 (variants), #17 (Maxwell 2 profile) — reconcile this doc in those PRs.
+> **Status:** the adapter (#8), the stores (#11) and the feature rows (#12) are
+> built and reconciled below; profiles land with #15 (variants) and #17
+> (Maxwell 2) — reconcile this doc in those PRs.
 
 The whole product rests on one idea: **the UI is rendered from what the device
 says it can do** (`headsetcontrol --output json` → `capabilities` array), never
@@ -30,6 +30,14 @@ flowchart TD
 `EqualizerSection.vue`, …). Adding support for a new headsetcontrol feature =
 one new file in `features/` + one registry entry. **Zero edits to existing
 files** (OCP — this is the extension seam of the whole app).
+
+`featureRows(capabilities)` returns the rows in the order the device reports
+them; a capability with no component is logged and skipped, and the battery is
+listed as rendered elsewhere (the device header) so it is not mistaken for one.
+Every row takes the same two props — the last value written and the device's
+readings — and emits one `change` event, which is what lets `ReadyScreen` render
+them in a single loop without naming a capability
+([ADR 0013](../decisions/0013-feature-row-contract.md)).
 
 **`profiles/registry.ts`** — `(vid, pid)` → `DeviceProfile`. Profiles carry the
 *model-specific* knowledge Rust is forbidden to have: EQ preset names, band
@@ -79,6 +87,8 @@ write-only in the CLI, which is why the store holds the last written value
   readable, `device.params[capability]` is where a feature component reads the
   current value from, and `device.readings` carries what the refresh loop read
   back.
+- **A row with no value shows "unknown", never "off"**: the app has not read the
+  device, and claiming a setting is off would be a lie about hardware.
 - Values shown in UI come from validated domain types (`types.gen.ts`), never
   raw JSON — the adapter is an anti-corruption layer
   (see [overview.md](overview.md)).
