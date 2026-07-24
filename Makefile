@@ -12,7 +12,7 @@ COMMITLINT_TO ?= HEAD
 .DEFAULT_GOAL := help
 
 .PHONY: help setup dev dev-mock build build-ci gen \
-        fe-lint fe-typecheck fe-test fe-coverage fe-e2e fe-check \
+        fe-lint fe-typecheck fe-test fe-coverage fe-e2e smoke fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
         commitlint format lint test coverage ci gen-check
 
@@ -59,6 +59,9 @@ fe-coverage: ## Vitest with coverage thresholds (100% logic / 90% UI)
 
 fe-e2e: ## Playwright E2E on MockBackend
 	npm run test:e2e
+
+smoke: ## Smoke E2E on the built app (needs tauri-driver + WebKitWebDriver)
+	node smoke/run.mjs
 
 fe-check: fe-lint fe-typecheck fe-coverage ## All frontend gates
 
