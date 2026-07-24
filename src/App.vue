@@ -12,7 +12,9 @@ import { INITIAL_STATE, transition } from "./core/state-machine";
 import type { AppEvent, AppState } from "./core/state-machine";
 import { useDeviceStore } from "./core/stores/device";
 import { useDevicesStore } from "./core/stores/devices";
+import { applyPlatform } from "./core/theme";
 import type { ParamValue } from "./core/types.gen";
+import { platformFor } from "./profiles/registry";
 import { SCREENS, screenProps } from "./screens/registry";
 
 // The state machine lives here (PROJECT.md §3.3): this component owns the
@@ -65,13 +67,15 @@ async function onHotplug(): Promise<void> {
   }
 }
 
-// The device store follows the screen: it holds the values of the headset the
-// user is looking at, and starts over for any other one.
+// The device store and the theme both follow the screen: the values belong to
+// the headset the user is looking at, and so does the platform accent (#15).
 watch(
-  () => (state.value.kind === "ready" ? state.value.device.id : null),
-  (deviceId) => {
-    device.focus(deviceId);
-    if (deviceId !== null) {
+  () => (state.value.kind === "ready" ? state.value.device : null),
+  (connected) => {
+    device.focus(connected?.id ?? null);
+    applyPlatform(connected ? platformFor(connected) : null);
+
+    if (connected) {
       void device.refresh(backend);
     }
   },

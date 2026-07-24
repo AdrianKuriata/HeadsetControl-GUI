@@ -37,10 +37,11 @@
   --color-hair: #1f1f1d;
   --color-hair-soft: #161614;
 
-  /* The mock's default accent is Xbox green. Setting `data-platform` from the
-     connected device's PID (and the neutral white fallback) is issue #15. */
-  --color-accent: #43b34a;
-  --color-accent-dim: rgb(67 179 74 / 14%);
+  /* Neutral until a device says otherwise: a headset with no profile, or a
+     product id its profile does not map, gets no accent at all (PROJECT.md §2).
+     The `[data-platform]` blocks below re-point these two. */
+  --color-accent: #f5f5f3;
+  --color-accent-dim: rgb(245 245 243 / 14%);
 
   --font-sans: "Inter Tight", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
@@ -53,6 +54,11 @@
    * `[data-platform]` scope re-themes every `*-accent` utility at once. This is
    * the reason components never name a platform.
    */
+  [data-platform="xbox"] {
+    --color-accent: #43b34a;
+    --color-accent-dim: rgb(67 179 74 / 14%);
+  }
+
   [data-platform="ps"] {
     --color-accent: #3a86d4;
     --color-accent-dim: rgb(58 134 212 / 14%);

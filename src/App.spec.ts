@@ -8,6 +8,8 @@ import { MAXWELL2_XBOX } from "./core/mock-backend";
 import { REFRESH_INTERVAL_MS } from "./core/refresh";
 import { useDeviceStore } from "./core/stores/device";
 import { useDevicesStore } from "./core/stores/devices";
+import { PLATFORM_ATTRIBUTE } from "./core/theme";
+import { PROFILES, profileKey } from "./profiles/registry";
 import { mountWithI18n } from "./test-support";
 
 /** The backend the app will pick up, scripted before it boots. */
@@ -216,6 +218,37 @@ describe("App", () => {
     await flushPromises();
 
     expect(reads).not.toHaveBeenCalled();
+  });
+
+  it("themes the app for the platform the connected headset is a variant for", async () => {
+    PROFILES[profileKey(MAXWELL2_XBOX)] = { variants: { [MAXWELL2_XBOX.productId]: "ps" } };
+    const backend = scriptedBackend();
+
+    try {
+      const app = mountApp();
+      await flushPromises();
+      expect(document.documentElement.getAttribute(PLATFORM_ATTRIBUTE)).toBe("ps");
+
+      // Unplugged: the accent goes back to neutral rather than lingering.
+      backend.setDevices([]);
+      await flushPromises();
+      expect(document.documentElement.hasAttribute(PLATFORM_ATTRIBUTE)).toBe(false);
+
+      app.unmount();
+    } finally {
+      delete PROFILES[profileKey(MAXWELL2_XBOX)];
+      document.documentElement.removeAttribute(PLATFORM_ATTRIBUTE);
+    }
+  });
+
+  it("stays neutral for a headset no profile knows", async () => {
+    scriptedBackend();
+
+    const app = mountApp();
+    await flushPromises();
+
+    expect(document.documentElement.hasAttribute(PLATFORM_ATTRIBUTE)).toBe(false);
+    app.unmount();
   });
 
   it("keeps the devices store in step with what is connected", async () => {
