@@ -15,7 +15,7 @@ defineEmits<{ retry: [] }>();
     <p class="max-w-[62ch] text-mid">{{ t("screens.badVersion.body", { found, required }) }}</p>
     <button
       type="button"
-      class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-low uppercase transition-colors hover:border-b-accent hover:text-ink"
+      class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase transition-colors hover:border-b-accent hover:text-ink"
       @click="$emit('retry')"
     >
       {{ t("common.checkAgain") }}

@@ -37,7 +37,7 @@ defineEmits<{ retry: [] }>();
     ><code>{{ UDEV_RULE }}</code></pre>
     <button
       type="button"
-      class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-low uppercase transition-colors hover:border-b-accent hover:text-ink"
+      class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase transition-colors hover:border-b-accent hover:text-ink"
       @click="$emit('retry')"
     >
       {{ t("common.checkAgain") }}
