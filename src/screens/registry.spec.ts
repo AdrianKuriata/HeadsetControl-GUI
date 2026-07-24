@@ -38,6 +38,13 @@ describe("the screen registry", () => {
     });
   });
 
+  it("hands the bad-version screen a missing version as such", () => {
+    expect(screenProps({ kind: "bad-version", found: null, required: "3.2.0" })).toEqual({
+      found: null,
+      required: "3.2.0",
+    });
+  });
+
   it("hands nothing to the screens that need nothing", () => {
     expect(screenProps({ kind: "checking-binary" })).toEqual({});
   });

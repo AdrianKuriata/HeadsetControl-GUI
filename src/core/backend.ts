@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 
 import { commands } from "./types.gen";
-import type { BackendError, Device, DeviceState, ParamValue } from "./types.gen";
+import type { BackendError, Detection, Device, DeviceState, ParamValue } from "./types.gen";
 
 /// The event the Rust hotplug watcher emits when the device list changes.
 export const DEVICES_CHANGED = "devices-changed";
@@ -17,6 +17,11 @@ export type Unsubscribe = () => void;
  * against {@link MockBackend} with no Rust behind it.
  */
 export interface HeadsetBackend {
+  /**
+   * Whether this backend can be used at all, and if not, why. Asked before
+   * anything else at startup — its verdict picks the first screen.
+   */
+  detect(): Promise<Detection>;
   listDevices(): Promise<Device[]>;
   deviceState(deviceId: string): Promise<DeviceState>;
   setParam(deviceId: string, param: string, value: ParamValue): Promise<void>;
@@ -50,6 +55,12 @@ function unwrap<T>(
 
 /** The real backend: IPC to the Rust commands generated into `types.gen.ts`. */
 export const tauriBackend: HeadsetBackend = {
+  // Detection answers with a verdict, never an error: there is no failure mode
+  // left for "the binary does not work" to be reported as.
+  async detect() {
+    return await commands.detectBinary();
+  },
+
   async listDevices() {
     return unwrap(await commands.listDevices());
   },

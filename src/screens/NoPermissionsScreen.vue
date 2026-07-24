@@ -3,11 +3,16 @@ import { useI18n } from "vue-i18n";
 import { I18nT } from "vue-i18n";
 
 // Technical constants, not prose: kept in script so they render via
-// interpolation (untranslated, and not flagged by no-bare-strings). The rule is
-// generic until binary detection (#9) can name the connected device's vendor id.
+// interpolation (untranslated, and not flagged by no-bare-strings).
+//
+// The rules come from `headsetcontrol -u` rather than from a hand-written
+// `hidraw*` catch-all: the CLI generates a rule per supported device, which
+// grants this app exactly the access it needs instead of every HID device on
+// the machine. Header text goes to stderr, so the pipe writes only rules
+// (PROJECT.md §9).
 const RULE_PATH = "/etc/udev/rules.d/70-headsets.rules";
-const RELOAD_COMMAND = "sudo udevadm control --reload-rules && sudo udevadm trigger";
-const UDEV_RULE = 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"';
+const COMMANDS = `headsetcontrol -u | sudo tee ${RULE_PATH}
+sudo udevadm control --reload-rules && sudo udevadm trigger`;
 
 const { t } = useI18n({ useScope: "global" });
 
@@ -28,13 +33,12 @@ defineEmits<{ retry: [] }>();
       <template #path
         ><code class="font-mono text-ink">{{ RULE_PATH }}</code></template
       >
-      <template #command
-        ><code class="font-mono text-ink">{{ RELOAD_COMMAND }}</code></template
-      >
     </I18nT>
     <pre
       class="overflow-x-auto border border-hair p-3 font-mono text-[11.5px] text-mid select-text"
-    ><code>{{ UDEV_RULE }}</code></pre>
+      data-part="udev-rule"
+    ><code>{{ COMMANDS }}</code></pre>
+    <p class="max-w-[62ch] text-mid">{{ t("screens.noPermissions.reconnect") }}</p>
     <button
       type="button"
       class="mt-2 w-fit cursor-pointer border-b border-transparent py-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase transition-colors hover:border-b-accent hover:text-ink"

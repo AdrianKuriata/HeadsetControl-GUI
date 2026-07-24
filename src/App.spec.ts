@@ -88,6 +88,42 @@ describe("App", () => {
     expect(app.text()).toContain(MAXWELL2_XBOX.name);
   });
 
+  // The three detection verdicts, each landing on its own screen (#9).
+  it.each([
+    { detection: { kind: "missing_binary" }, shows: "headsetcontrol not found" },
+    {
+      detection: { kind: "bad_version", found: "3.1.0", required: "3.2.0" },
+      shows: "headsetcontrol is too old",
+    },
+    { detection: { kind: "no_permissions" }, shows: "No permission to reach the headset" },
+  ] as const)(
+    "shows the $detection.kind screen when detection says so",
+    async ({ detection, shows }) => {
+      const backend = scriptedBackend();
+      backend.scenario.detection = detection;
+
+      const app = mountApp();
+      await flushPromises();
+
+      expect(app.text()).toContain(shows);
+    },
+  );
+
+  it("recovers from a detection failure once the binary is installed", async () => {
+    const backend = scriptedBackend();
+    backend.scenario.detection = { kind: "missing_binary" };
+
+    const app = mountApp();
+    await flushPromises();
+    expect(app.text()).toContain("headsetcontrol not found");
+
+    backend.scenario.detection = { kind: "ready" };
+    await app.get("button").trigger("click");
+    await flushPromises();
+
+    expect(app.text()).toContain(MAXWELL2_XBOX.name);
+  });
+
   it("keeps the current screen when a hotplug refresh fails", async () => {
     const backend = scriptedBackend();
     const app = mountApp();

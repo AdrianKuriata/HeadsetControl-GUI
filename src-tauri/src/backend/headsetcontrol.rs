@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
+use super::detect::{self, Detection, DeviceAccess};
 use super::{
     BackendError, Battery, BatteryStatus, Device, DeviceState, HeadsetBackend, ParamValue,
 };
@@ -64,13 +65,18 @@ const WRITE_FLAGS: &[(&str, &str)] = &[
 ];
 
 /// The `headsetcontrol` implementation of the [`HeadsetBackend`] seam.
-pub struct HeadsetControlBackend<R: CliRunner> {
+///
+/// Two things are injected, and for the same reason: the process spawn and the
+/// look at device nodes are the only impure parts of talking to a headset, so
+/// keeping both behind traits leaves everything here testable from fixtures.
+pub struct HeadsetControlBackend<R: CliRunner, A: DeviceAccess> {
     runner: R,
+    access: A,
 }
 
-impl<R: CliRunner> HeadsetControlBackend<R> {
-    pub fn new(runner: R) -> Self {
-        Self { runner }
+impl<R: CliRunner, A: DeviceAccess> HeadsetControlBackend<R, A> {
+    pub fn new(runner: R, access: A) -> Self {
+        Self { runner, access }
     }
 
     /// Runs the CLI and hands back its stdout, having ruled out the two ways
@@ -97,7 +103,43 @@ impl<R: CliRunner> HeadsetControlBackend<R> {
     }
 }
 
-impl<R: CliRunner> HeadsetBackend for HeadsetControlBackend<R> {
+impl<R: CliRunner, A: DeviceAccess> HeadsetBackend for HeadsetControlBackend<R, A> {
+    /// One invocation answers everything the startup probe needs: the CLI's
+    /// `--output=json` names its own version *and* lists the devices whose
+    /// access has to be checked, so detection costs no more than a device list.
+    fn detect(&self) -> Detection {
+        let output = match self.runner.run(&[json_output()]) {
+            Ok(output) => output,
+            Err(message) => {
+                log::info!("headsetcontrol could not be run: {message}");
+                return Detection::MissingBinary;
+            }
+        };
+
+        // Output this build cannot read is an incompatible binary, not a
+        // missing one — including the usage text an older CLI prints on stderr
+        // when it does not know `--output=json`.
+        let Ok(raw) = serde_json::from_str::<RawOutput>(&output.stdout) else {
+            let complaint = output.stderr.trim();
+            log::warn!("unreadable headsetcontrol output: {complaint}");
+            return Detection::BadVersion {
+                found: None,
+                required: detect::required_version(),
+            };
+        };
+
+        // A device whose usb ids make no sense cannot be permission-checked;
+        // dropping it here is not hiding anything, because `list_devices`
+        // reports the same output as an error moments later.
+        let devices: Vec<Device> = raw
+            .devices
+            .iter()
+            .filter_map(|raw| to_device(raw).ok())
+            .collect();
+
+        detect::diagnose(raw.version.as_deref(), &devices, &self.access)
+    }
+
     fn list_devices(&self) -> Result<Vec<Device>, BackendError> {
         parse_devices(&self.output(&[json_output()])?)
     }
@@ -169,6 +211,10 @@ fn cli_device_arg(device_id: &str) -> Result<String, BackendError> {
 
 #[derive(Deserialize)]
 struct RawOutput {
+    /// How the CLI names its own build: a release (`3.2.0`) or a git
+    /// description (`continuous-52-gfe086cd`). Absent output is not a version
+    /// this app can vouch for — see [`detect::diagnose`].
+    version: Option<String>,
     #[serde(default)]
     devices: Vec<RawDevice>,
     #[serde(default)]
@@ -390,8 +436,24 @@ mod tests {
         }
     }
 
-    fn backend(stdout: &str) -> HeadsetControlBackend<FakeRunner> {
-        HeadsetControlBackend::new(FakeRunner::replaying(stdout))
+    /// Whatever the adapter asks about a device node, it is told the same thing.
+    struct FakeAccess(detect::Access);
+
+    impl DeviceAccess for FakeAccess {
+        fn access(&self, _vendor_id: u16, _product_id: u16) -> detect::Access {
+            self.0
+        }
+    }
+
+    fn backend(stdout: &str) -> HeadsetControlBackend<FakeRunner, FakeAccess> {
+        with_access(FakeRunner::replaying(stdout), detect::Access::Granted)
+    }
+
+    fn with_access(
+        runner: FakeRunner,
+        access: detect::Access,
+    ) -> HeadsetControlBackend<FakeRunner, FakeAccess> {
+        HeadsetControlBackend::new(runner, FakeAccess(access))
     }
 
     // ── contract tests on recorded output ────────────────────────────────────
@@ -670,9 +732,100 @@ mod tests {
         assert!(backend.device_state("3329:zz").is_err());
     }
 
+    // ── detection ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn detects_a_binary_that_cannot_be_run_as_a_missing_one() {
+        let backend = with_access(
+            FakeRunner::failing("No such file or directory"),
+            detect::Access::Granted,
+        );
+
+        assert_eq!(backend.detect(), Detection::MissingBinary);
+    }
+
+    #[test]
+    fn accepts_the_recorded_output_of_a_development_build() {
+        // The fixture is real output from a source build, which is the only
+        // kind that carries Maxwell 2 support today.
+        assert_eq!(backend(HEALTHY).detect(), Detection::Ready);
+    }
+
+    #[test]
+    fn detects_a_released_binary_that_is_too_old() {
+        let json = HEALTHY.replace("continuous-52-gfe086cd-modified", "3.1.0");
+
+        assert_eq!(
+            backend(&json).detect(),
+            Detection::BadVersion {
+                found: Some("3.1.0".to_owned()),
+                required: detect::required_version(),
+            }
+        );
+    }
+
+    #[test]
+    fn detects_output_it_cannot_read_as_an_incompatible_binary() {
+        // What an older CLI does with an option it never heard of: a complaint
+        // on stderr and no json at all.
+        let unusable = with_access(
+            FakeRunner::complaining("Usage: headsetcontrol [options]"),
+            detect::Access::Granted,
+        );
+
+        let incompatible = Detection::BadVersion {
+            found: None,
+            required: detect::required_version(),
+        };
+
+        assert_eq!(unusable.detect(), incompatible);
+        assert_eq!(backend(MALFORMED).detect(), incompatible);
+    }
+
+    #[test]
+    fn detects_output_that_names_no_version_as_an_incompatible_binary() {
+        // Json this app can read, from a CLI too old to say what it is.
+        let json = HEALTHY.replace("\"version\": \"continuous-52-gfe086cd-modified\",", "");
+
+        assert_eq!(
+            backend(&json).detect(),
+            Detection::BadVersion {
+                found: None,
+                required: detect::required_version(),
+            }
+        );
+    }
+
+    #[test]
+    fn detects_a_device_that_refuses_to_open_as_a_permissions_problem() {
+        let denied = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Denied);
+
+        assert_eq!(denied.detect(), Detection::NoPermissions);
+    }
+
+    #[test]
+    fn detection_ignores_a_device_whose_usb_ids_make_no_sense() {
+        // The listing still fails on it — detection just has nothing to check.
+        let json = HEALTHY.replace("\"0x3329\"", "\"not-hex\"");
+        let denied = with_access(FakeRunner::replaying(&json), detect::Access::Denied);
+
+        assert_eq!(denied.detect(), Detection::Ready);
+        assert!(denied.list_devices().is_err());
+    }
+
+    #[test]
+    fn detects_a_working_binary_with_nothing_connected() {
+        let denied = with_access(FakeRunner::replaying(EMPTY), detect::Access::Denied);
+
+        assert_eq!(denied.detect(), Detection::Ready);
+    }
+
     #[test]
     fn reports_a_binary_it_could_not_run() {
-        let backend = HeadsetControlBackend::new(FakeRunner::failing("No such file or directory"));
+        let backend = with_access(
+            FakeRunner::failing("No such file or directory"),
+            detect::Access::Granted,
+        );
         let expected = BackendError::Failed {
             message: "could not run headsetcontrol: No such file or directory".to_owned(),
         };
@@ -690,8 +843,10 @@ mod tests {
 
     #[test]
     fn reports_the_complaint_the_cli_printed_instead_of_output() {
-        let backend =
-            HeadsetControlBackend::new(FakeRunner::complaining("Error: device: format: vid:pid"));
+        let backend = with_access(
+            FakeRunner::complaining("Error: device: format: vid:pid"),
+            detect::Access::Granted,
+        );
 
         assert_eq!(
             backend.list_devices().unwrap_err(),

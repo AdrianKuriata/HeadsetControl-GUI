@@ -8,6 +8,16 @@ describe("MockBackend", () => {
     await expect(new MockBackend().listDevices()).resolves.toEqual([MAXWELL2_XBOX]);
   });
 
+  it("detects a usable binary by default", async () => {
+    await expect(new MockBackend().detect()).resolves.toEqual({ kind: "ready" });
+  });
+
+  it("reports the scripted detection verdict", async () => {
+    const backend = new MockBackend({ detection: { kind: "no_permissions" } });
+
+    await expect(backend.detect()).resolves.toEqual({ kind: "no_permissions" });
+  });
+
   it("takes a scenario over the default one", async () => {
     const backend = new MockBackend({ devices: [] });
 
