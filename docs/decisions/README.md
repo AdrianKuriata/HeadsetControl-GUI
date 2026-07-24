@@ -55,3 +55,4 @@ Routine implementation choices that follow the spec need no ADR.
 | [0010](0010-binary-detection-and-permission-diagnosis.md) | Binary detection and permission diagnosis: a version constant and a device-node seam | Accepted |
 | [0011](0011-hotplug-watcher-seam.md) | Hotplug: a pure loop, OS watchers behind a seam, no vendor table | Accepted |
 | [0012](0012-hardening-the-cli-boundary-and-the-supply-chain.md) | Harden the CLI boundary and the supply chain | Accepted |
+| [0013](0013-stores-optimistic-writes.md) | Stores: injected backend, a focused device, optimistic writes with a guarded rollback | Accepted |
