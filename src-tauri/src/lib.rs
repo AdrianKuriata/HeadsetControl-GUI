@@ -28,7 +28,11 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(ipc.invoke_handler())
-        .manage(commands::Backend(Box::new(backend::UnimplementedBackend)))
+        // The real adapter from the start; #9 adds the detection that decides
+        // whether the binary behind it is usable before the app trusts it.
+        .manage(commands::Backend(Box::new(
+            backend::HeadsetControlBackend::new(backend::ProcessRunner),
+        )))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

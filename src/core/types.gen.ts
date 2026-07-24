@@ -12,7 +12,11 @@ export const commands = {
 
 /* Types */
 export type BackendError = 
-/**  No backend implementation is wired up yet (until the adapter lands, #8). */
+/**
+ *  The backend does not implement this operation. Part of the wire contract
+ *  (the frontend already renders it) for a backend that covers only part of
+ *  the seam — the planned native HID one, for instance.
+ */
 { kind: "not_implemented" } | 
 /**  The operation reached the device layer and failed there. */
 { kind: "failed"; message: string };

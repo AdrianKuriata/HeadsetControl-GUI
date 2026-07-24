@@ -1,0 +1,24 @@
+{
+  "name": "HeadsetControl",
+  "version": "continuous-52-gfe086cd-modified",
+  "api_version": "1.4",
+  "hidapi_version": "0.14.0",
+  "device_count": 1,
+  "devices": [
+    {
+      "status": "success",
+      "device": "Audeze Maxwell 2",
+      "vendor": "Audeze LLC",
+      "product": "Audeze Maxwell XBOX Dongle",
+      "id_vendor": "0x3329",
+      "id_product": "0x4b28",
+      "capabilities": ["CAP_SIDETONE", "CAP_FROM_THE_FUTURE", "CAP_BATTERY_STATUS"],
+      "capabilities_str": ["sidetone", "something new", "battery"],
+      "battery": {
+        "status": "BATTERY_CHARGING",
+        "level": 55
+      },
+      "chatmix": 64
+    }
+  ]
+}

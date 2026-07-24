@@ -8,8 +8,12 @@
 //! to `src/core/types.gen.ts` by tauri-specta and never leak the CLI's own JSON
 //! shape.
 
+mod exec;
 mod headsetcontrol;
 mod hotplug;
+
+pub use exec::ProcessRunner;
+pub use headsetcontrol::HeadsetControlBackend;
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -68,7 +72,9 @@ pub enum ParamValue {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum BackendError {
-    /// No backend implementation is wired up yet (until the adapter lands, #8).
+    /// The backend does not implement this operation. Part of the wire contract
+    /// (the frontend already renders it) for a backend that covers only part of
+    /// the seam — the planned native HID one, for instance.
     NotImplemented,
     /// The operation reached the device layer and failed there.
     Failed { message: String },
@@ -85,8 +91,8 @@ impl std::fmt::Display for BackendError {
 
 impl std::error::Error for BackendError {}
 
-/// The seam. Implementations: the `headsetcontrol` adapter (#8), a native HID
-/// backend later, and [`UnimplementedBackend`] until the first one exists.
+/// The seam. Implemented by [`HeadsetControlBackend`]; a native HID backend
+/// plugs in behind it later with no frontend change.
 pub trait HeadsetBackend: Send + Sync {
     fn list_devices(&self) -> Result<Vec<Device>, BackendError>;
     fn device_state(&self, device_id: &str) -> Result<DeviceState, BackendError>;
@@ -98,48 +104,9 @@ pub trait HeadsetBackend: Send + Sync {
     ) -> Result<(), BackendError>;
 }
 
-/// Placeholder registered while the real adapter is being built (#8). The
-/// frontend develops against its own MockBackend, so every call here answers
-/// with an honest "not implemented" instead of a silent empty result.
-pub struct UnimplementedBackend;
-
-impl HeadsetBackend for UnimplementedBackend {
-    fn list_devices(&self) -> Result<Vec<Device>, BackendError> {
-        Err(BackendError::NotImplemented)
-    }
-
-    fn device_state(&self, _device_id: &str) -> Result<DeviceState, BackendError> {
-        Err(BackendError::NotImplemented)
-    }
-
-    fn set_param(
-        &self,
-        _device_id: &str,
-        _param: &str,
-        _value: ParamValue,
-    ) -> Result<(), BackendError> {
-        Err(BackendError::NotImplemented)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn unimplemented_backend_answers_not_implemented_to_every_call() {
-        let backend = UnimplementedBackend;
-
-        assert_eq!(backend.list_devices(), Err(BackendError::NotImplemented));
-        assert_eq!(
-            backend.device_state("3329:4b28"),
-            Err(BackendError::NotImplemented)
-        );
-        assert_eq!(
-            backend.set_param("3329:4b28", "CAP_SIDETONE", ParamValue::Int(64)),
-            Err(BackendError::NotImplemented)
-        );
-    }
 
     #[test]
     fn backend_errors_describe_themselves() {
