@@ -6,6 +6,8 @@ import { MOCK_BACKEND_FLAG, createBackend, resetBackend } from "./core/create-ba
 import type { MockBackend } from "./core/mock-backend";
 import { MAXWELL2_XBOX } from "./core/mock-backend";
 import { REFRESH_INTERVAL_MS } from "./core/refresh";
+import { useDeviceStore } from "./core/stores/device";
+import { useDevicesStore } from "./core/stores/devices";
 import { mountWithI18n } from "./test-support";
 
 /** The backend the app will pick up, scripted before it boots. */
@@ -214,6 +216,46 @@ describe("App", () => {
     await flushPromises();
 
     expect(reads).not.toHaveBeenCalled();
+  });
+
+  it("keeps the devices store in step with what is connected", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    expect(useDevicesStore().selected).toEqual(MAXWELL2_XBOX);
+
+    backend.setDevices([]);
+    await flushPromises();
+    expect(useDevicesStore().selected).toBeUndefined();
+
+    app.unmount();
+  });
+
+  it("reports a refused write in a toast, with the value already rolled back", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    const device = useDeviceStore();
+    backend.fail("setParam", { kind: "error", error: { kind: "failed", message: "asleep" } });
+    await device.write(backend, "CAP_SIDETONE", { kind: "int", value: 96 });
+    await flushPromises();
+
+    expect(app.get('[data-part="toast"]').text()).toContain("CAP_SIDETONE");
+    expect(device.params).toEqual({});
+
+    await app.get('[data-part="dismiss"]').trigger("click");
+    expect(app.find('[data-part="toast"]').exists()).toBe(false);
+  });
+
+  it("shows no toast while writes are going through", async () => {
+    scriptedBackend();
+
+    const app = mountApp();
+    await flushPromises();
+
+    expect(app.find('[data-part="toast"]').exists()).toBe(false);
   });
 
   it("stops listening for hotplug once unmounted", async () => {
