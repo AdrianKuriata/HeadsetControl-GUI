@@ -1,8 +1,8 @@
 # Capabilities — the business logic
 
-> **Status:** the adapter (#8), the stores (#11) and the feature rows (#12) are
-> built and reconciled below; profiles land with #15 (variants) and #17
-> (Maxwell 2) — reconcile this doc in those PRs.
+> **Status:** the adapter (#8), the stores (#11), the feature rows (#12) and the
+> profile registry with platform variants (#15) are built and reconciled below.
+> The first real profile lands with #17 (Maxwell 2) — reconcile this doc there.
 
 The whole product rests on one idea: **the UI is rendered from what the device
 says it can do** (`headsetcontrol --output json` → `capabilities` array), never
@@ -39,11 +39,13 @@ readings — and emits one `change` event, which is what lets `ReadyScreen` rend
 them in a single loop without naming a capability
 ([ADR 0014](../decisions/0014-feature-row-contract.md)).
 
-**`profiles/registry.ts`** — `(vid, pid)` → `DeviceProfile`. Profiles carry the
-*model-specific* knowledge Rust is forbidden to have: EQ preset names, band
-frequencies, PID→platform `variants` map. Unknown device → `GenericProfile`
-(everything still works, just without nice names). `DeviceProfile` is
-interface-segregated: a profile declares only what it overrides.
+**`profiles/registry.ts`** — `(vid, pid)` → `DeviceProfile`, keyed the way the CLI
+reports ids (`3329:4b28`). Profiles carry the *model-specific* knowledge Rust is
+forbidden to have: the PID→platform `variants` map today, EQ preset names and band
+frequencies with #16/#17. Unknown device → `GENERIC_PROFILE` (everything still
+works, just neutral and without nice names). `DeviceProfile` is
+interface-segregated: every field is optional, so a profile declares only what it
+overrides, and `platformFor()` answers `null` rather than guessing.
 
 ## Division of knowledge (the hard boundary)
 

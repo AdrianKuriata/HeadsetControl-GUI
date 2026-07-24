@@ -51,18 +51,25 @@ One accent color, driven by the connected device's platform variant:
 
 | `[data-platform]` | Accent | |
 |---|---|---|
-| `xbox` | `#43b34a` | mock's `:root` default |
+| `xbox` | `#43b34a` | the mock's own accent |
 | `ps` | `#3a86d4` | |
 | `nintendo` | `#e4404b` | |
-| *(none / unknown)* | white | neutral fallback — **spec only, not yet in the mock**; add with issue #15 |
+| `pc` | white | a variant with no colour of its own |
+| *(attribute absent)* | white | no profile, or a product id it does not map |
 
 Mechanics: `DeviceProfile` may carry `variants: { [pid]: 'xbox' | 'ps' | 'nintendo' | 'pc' }`.
-The core resolves the connected PID against that map and sets `data-platform` on the
-root element; the CSS variable does the rest. Tailwind compiles every `*-accent`
-utility to `var(--color-accent)`, so re-pointing that one variable under a
-`[data-platform]` scope re-themes the whole UI at once. **UI components never
-special-case platforms** — they only use `*-accent` utilities. A profile without a
-`variants` map, or an unmapped PID, gets the neutral fallback. (Mechanism: issue #15.)
+`profiles/registry.ts` resolves the connected device to its profile and the profile to
+a platform (`platformFor`), and `core/theme.ts` puts that on the root element as
+`data-platform` — the whole mechanism is one attribute. Tailwind compiles every
+`*-accent` utility to `var(--color-accent)`, so re-pointing that one variable under a
+`[data-platform]` scope re-themes the UI at once. **UI components never special-case
+platforms** — they only use `*-accent` utilities. A profile without a `variants` map,
+an unmapped product id, or no profile at all leaves the attribute off and the accent
+neutral.
+
+The one place a platform is *named* is the badge beside the device name
+(`data-part="platform"`, mono, accent border). Platform names are proper nouns and are
+not translated, like the device's own name.
 
 Accent is used *sparingly*: active preset/option underline, slider handle on
 hover/drag/focus, EQ edit points, LED dot, platform badge, dB value while dragging.
