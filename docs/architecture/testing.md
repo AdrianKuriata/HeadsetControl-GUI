@@ -87,10 +87,12 @@ afterwards would only be seen by the next event, so "no headset at startup" or
 Selectors are `data-part` / `data-capability` attributes and ARIA roles, never
 CSS classes — the same rule the component tests follow.
 
-Two flows named in #13 are **not** covered yet, because the UI they need does
-not exist: choosing between several connected headsets (the store supports it,
-[ADR 0012](../decisions/0012-stores-optimistic-writes.md); the picker does not
-exist) and platform accent switching (#15). Both land with their feature.
+Two flows named in #13 are **not** covered here yet. Choosing between several
+connected headsets needs a picker that does not exist (the store supports it,
+[ADR 0012](../decisions/0012-stores-optimistic-writes.md)). Platform accent
+switching has its mechanism since #15 — unit- and component-tested — but no
+device maps to a platform until the first real profile lands (#17), so the
+end-to-end flow belongs to that PR.
 
 ## Smoke E2E on the real app
 

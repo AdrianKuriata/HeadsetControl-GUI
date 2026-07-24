@@ -212,7 +212,10 @@ The app is an explicit state machine, each state having its own screen:
 
 Platform accent colors (Xbox green / PlayStation blue / Nintendo red / neutral white
 fallback) are a **core mechanism**, driven by an optional `variants: { [pid]: platform }`
-map on `DeviceProfile` — never special-cased in UI components.
+map on `DeviceProfile` — never special-cased in UI components. `profiles/registry.ts`
+resolves `(vid, pid) → profile → platform` (`GENERIC_PROFILE` and `null` are the
+fallbacks) and `core/theme.ts` puts it on the root as `data-platform`; the accent
+variables are scoped to that attribute, so components only ever use `*-accent`.
 
 ### Target structure (PROJECT.md §3 — build toward this, don't invent parallel layouts)
 

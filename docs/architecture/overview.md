@@ -79,8 +79,11 @@ flowchart LR
   ticket-guarded rollback
   ([ADR 0012](../decisions/0012-stores-optimistic-writes.md)).
 - `profiles/` — `DeviceProfile` resolved by `(vid, pid)` with a
-  `GenericProfile` fallback; holds EQ preset names, band frequencies, and the
-  optional `variants: { [pid]: platform }` map driving platform accent colors.
+  `GENERIC_PROFILE` fallback; holds the optional `variants: { [pid]: platform }`
+  map driving the accent colour, and later EQ preset names and band frequencies.
+- `core/theme.ts` — puts the resolved platform on the root as `data-platform`;
+  the accent variables are scoped to it, which is why no component names a
+  platform.
 - `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout,
   HToast, HRow — the three-column row layout); features never use raw inputs.
 - `i18n/` — vue-i18n (pl + en, en fallback); every user-facing string is a
