@@ -12,7 +12,7 @@ without reverse-engineering the code. Reference for facts, code for truth.
 | [state-machine.md](state-machine.md) | App state machine, one screen per state, startup detection, hotplug and value refresh | done (#5, #9, #10) |
 | [design-system.md](design-system.md) | UI layer: tokens, H-components, platform accents | tokens + controls done (#6, #11, #12); accent wiring in #15 |
 | [capabilities.md](capabilities.md) | Business logic: capability → UI, profiles, variants | adapter (#8), stores (#11), feature rows (#12) done; profiles in #15/#17 |
-| [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | unit/component + E2E done (#3, #13); smoke E2E in #14 |
+| [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | done (#3, #13, #14); release checklist in #25 |
 | [security.md](security.md) | Tauri ACL, CSP, hardware-safety boundary | done (#1), updater in #22 |
 
 ## Rules for maintaining these docs

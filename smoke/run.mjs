@@ -31,8 +31,8 @@ const DRIVER = await onPath(process.env.TAURI_DRIVER ?? "tauri-driver");
 const NATIVE_DRIVER = await onPath(process.env.WEBKIT_WEBDRIVER ?? "WebKitWebDriver");
 const PORT = Number(process.env.SMOKE_PORT ?? 4444);
 
-/** Long enough to cover the adapter's own 5 s call timeout and a cold launch. */
-const TIMEOUT = 20_000;
+/** Long enough to cover the adapter's own 10 s call timeout and a cold launch. */
+const TIMEOUT = 30_000;
 
 const SIDETONE = "[data-capability='CAP_SIDETONE']";
 

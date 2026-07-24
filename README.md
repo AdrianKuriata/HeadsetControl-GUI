@@ -27,6 +27,8 @@ Rust stable (edition 2024).
   `libudev-dev` is the Linux hotplug monitor's build dependency; it is not
   needed on other platforms, where the app watches devices by polling.
 - The `headsetcontrol` binary in `PATH` (runtime dependency)
+- For `make smoke` only: `cargo install tauri-driver` and
+  `sudo apt install webkit2gtk-driver` (plus `xvfb` on a headless machine)
 
 ## Development
 
