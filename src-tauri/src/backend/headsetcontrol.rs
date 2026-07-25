@@ -39,29 +39,97 @@ pub trait CliRunner: Send + Sync {
     fn run(&self, args: &[String]) -> Result<CliOutput, String>;
 }
 
-/// Capability → CLI flag. This is the complete write vocabulary of the adapter:
-/// a capability missing from the table cannot be written, and asking for one is
-/// an error rather than a silent no-op.
+/// How one capability is written: the flag that carries it and the values the
+/// CLI will accept for it.
+struct Write {
+    capability: &'static str,
+    flag: &'static str,
+    /// Inclusive, and taken from upstream — see [`WRITE_FLAGS`].
+    accepts: std::ops::RangeInclusive<i32>,
+}
+
+/// Capability → CLI flag and value range. This is the complete write vocabulary
+/// of the adapter: a capability missing from the table cannot be written, and
+/// asking for one is an error rather than a silent no-op.
 ///
 /// Capability knowledge, not model knowledge — every headset that reports
 /// `CAP_SIDETONE` is written the same way (PROJECT.md §3.1).
-const WRITE_FLAGS: &[(&str, &str)] = &[
-    ("CAP_SIDETONE", "-s"),
-    ("CAP_INACTIVE_TIME", "-i"),
-    ("CAP_VOICE_PROMPTS", "-v"),
-    ("CAP_NOISE_FILTER", "--noise-filter"),
-    ("CAP_EQUALIZER_PRESET", "-p"),
-    ("CAP_LIGHTS", "-l"),
-    ("CAP_NOTIFICATION_SOUND", "-n"),
-    ("CAP_ROTATE_TO_MUTE", "-r"),
-    (
-        "CAP_MICROPHONE_MUTE_LED_BRIGHTNESS",
-        "--microphone-mute-led-brightness",
-    ),
-    ("CAP_MICROPHONE_VOLUME", "--microphone-volume"),
-    ("CAP_VOLUME_LIMITER", "--volume-limiter"),
-    ("CAP_BT_WHEN_POWERED_ON", "--bt-when-powered-on"),
-    ("CAP_BT_CALL_VOLUME", "--bt-call-volume"),
+///
+/// The ranges are copied from upstream's own single source of truth,
+/// `lib/capability_descriptors.hpp` (`min_value`/`max_value`), so nothing here
+/// is invented. They are a **sanity bound**, not a per-device limit: what a
+/// particular headset really accepts within them is model knowledge and belongs
+/// in `src/profiles/`. Rust is the last gate before the hardware, and PROJECT.md
+/// §11 puts hardware safety above every feature, so a value outside the bound is
+/// refused here rather than handed to the device.
+const WRITE_FLAGS: &[Write] = &[
+    Write {
+        capability: "CAP_SIDETONE",
+        flag: "-s",
+        accepts: 0..=128,
+    },
+    Write {
+        capability: "CAP_INACTIVE_TIME",
+        flag: "-i",
+        accepts: 0..=90,
+    },
+    Write {
+        capability: "CAP_VOICE_PROMPTS",
+        flag: "-v",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_NOISE_FILTER",
+        flag: "--noise-filter",
+        accepts: 0..=2,
+    },
+    Write {
+        capability: "CAP_EQUALIZER_PRESET",
+        flag: "-p",
+        // Upstream calls its own maximum device-specific; which presets exist
+        // is a profile's answer, not this layer's.
+        accepts: 0..=255,
+    },
+    Write {
+        capability: "CAP_LIGHTS",
+        flag: "-l",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_NOTIFICATION_SOUND",
+        flag: "-n",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_ROTATE_TO_MUTE",
+        flag: "-r",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_MICROPHONE_MUTE_LED_BRIGHTNESS",
+        flag: "--microphone-mute-led-brightness",
+        accepts: 0..=3,
+    },
+    Write {
+        capability: "CAP_MICROPHONE_VOLUME",
+        flag: "--microphone-volume",
+        accepts: 0..=128,
+    },
+    Write {
+        capability: "CAP_VOLUME_LIMITER",
+        flag: "--volume-limiter",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_BT_WHEN_POWERED_ON",
+        flag: "--bt-when-powered-on",
+        accepts: 0..=1,
+    },
+    Write {
+        capability: "CAP_BT_CALL_VOLUME",
+        flag: "--bt-call-volume",
+        accepts: 0..=100,
+    },
 ];
 
 /// The `headsetcontrol` implementation of the [`HeadsetBackend`] seam.
@@ -165,23 +233,34 @@ impl<R: CliRunner, A: DeviceAccess> HeadsetBackend for HeadsetControlBackend<R, 
         param: &str,
         value: ParamValue,
     ) -> Result<(), BackendError> {
-        let flag = WRITE_FLAGS
+        let write = WRITE_FLAGS
             .iter()
-            .find(|(capability, _)| *capability == param)
-            .map(|(_, flag)| *flag)
+            .find(|write| write.capability == param)
             .ok_or_else(|| BackendError::Failed {
                 message: format!("{param} cannot be written through headsetcontrol"),
             })?;
 
+        let number = match value {
+            ParamValue::Int(number) => number,
+            ParamValue::Bool(true) => 1,
+            ParamValue::Bool(false) => 0,
+        };
+
+        if !write.accepts.contains(&number) {
+            return Err(BackendError::Failed {
+                message: format!(
+                    "{number} is outside the {}..={} that {param} accepts",
+                    write.accepts.start(),
+                    write.accepts.end()
+                ),
+            });
+        }
+
         let args = vec![
             "-d".to_owned(),
             cli_device_arg(device_id)?,
-            flag.to_owned(),
-            match value {
-                ParamValue::Int(number) => number.to_string(),
-                ParamValue::Bool(true) => "1".to_owned(),
-                ParamValue::Bool(false) => "0".to_owned(),
-            },
+            write.flag.to_owned(),
+            number.to_string(),
             json_output(),
         ];
 
@@ -714,6 +793,49 @@ mod tests {
                 message: "CAP_BATTERY_STATUS cannot be written through headsetcontrol".to_owned()
             })
         );
+    }
+
+    #[test]
+    fn refuses_a_value_outside_the_range_the_capability_accepts() {
+        let backend = backend(WRITE);
+
+        // Rust is the last gate before the hardware, so the bound is enforced
+        // here and not only wherever the UI happens to clamp (PROJECT.md §11).
+        for value in [-1, 129] {
+            assert_eq!(
+                backend.set_param(MAXWELL, "CAP_SIDETONE", ParamValue::Int(value)),
+                Err(BackendError::Failed {
+                    message: format!("{value} is outside the 0..=128 that CAP_SIDETONE accepts"),
+                })
+            );
+        }
+
+        // A toggle is a range like any other: 2 is not "on".
+        assert!(
+            backend
+                .set_param(MAXWELL, "CAP_VOICE_PROMPTS", ParamValue::Int(2))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn nothing_is_spawned_for_a_value_it_refuses() {
+        let backend = backend(WRITE);
+
+        let _ = backend.set_param(MAXWELL, "CAP_SIDETONE", ParamValue::Int(9_999));
+
+        assert!(backend.runner.last_call().is_empty());
+    }
+
+    #[test]
+    fn accepts_both_ends_of_the_range() {
+        let backend = backend(WRITE);
+
+        for value in [0, 128] {
+            let _ = backend.set_param(MAXWELL, "CAP_SIDETONE", ParamValue::Int(value));
+
+            assert_eq!(backend.runner.last_call()[3], value.to_string());
+        }
     }
 
     #[test]
