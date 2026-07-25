@@ -1,0 +1,27 @@
+# Advisories `cargo audit` may not fail on. Read by `make audit`.
+#
+# An entry here is a claim that the advisory is real but **cannot be fixed from
+# this repository** — the crate is pinned somewhere inside Tauri's own tree and
+# `cargo update` moves nothing. Each one names who pins it and why it does not
+# reach a user, and each is a candidate for deletion the moment a Dependabot
+# bump makes `cargo audit` pass without it. Nothing is ignored to quiet the gate.
+#
+# Re-check with:  cargo audit --file src-tauri/Cargo.lock --ignore-config-file
+
+[advisories]
+ignore = [
+  # quick-xml < 0.41: quadratic parse of duplicate attribute names, and
+  # unbounded namespace-declaration allocation. Both are denial of service on
+  # hostile XML.
+  #   Pinned by: plist 1.8 → tauri-utils → tauri / tauri-build.
+  #   Reach: plist parses bundle metadata this repo authors, at build time. The
+  #   app parses no XML at runtime — the CLI speaks JSON (backend/headsetcontrol.rs).
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+
+  # time 0.3.45: stack exhaustion parsing a crafted format description.
+  #   Pinned by: Tauri's dependency tree; `cargo update -p time` is a no-op.
+  #   Reach: no untrusted format description is parsed — the app formats no
+  #   dates from device or CLI output.
+  "RUSTSEC-2026-0009",
+]
