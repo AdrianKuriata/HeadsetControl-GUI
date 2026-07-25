@@ -1,6 +1,7 @@
 import type { Component } from "vue";
 
 import type { AppState } from "../core/state-machine";
+import type { DeviceState } from "../core/types.gen";
 import BadVersionScreen from "./BadVersionScreen.vue";
 import CheckingBinaryScreen from "./CheckingBinaryScreen.vue";
 import DeviceLostScreen from "./DeviceLostScreen.vue";
@@ -24,10 +25,21 @@ export const SCREENS: Record<AppState["kind"], Component> = {
   "device-lost": DeviceLostScreen,
 };
 
-/** The props a state hands to its screen. */
-export function screenProps(state: AppState): Record<string, unknown> {
+/**
+ * The props a state hands to its screen.
+ *
+ * `readings` are the values the refresh loop keeps up to date (#10); they are
+ * not part of the state machine, because a battery percentage never decides
+ * which screen is shown.
+ */
+export function screenProps(
+  state: AppState,
+  readings: DeviceState | null = null,
+): Record<string, unknown> {
   switch (state.kind) {
     case "ready":
+      return { device: state.device, readings };
+
     case "device-lost":
       return { device: state.device };
 

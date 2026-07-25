@@ -29,3 +29,9 @@ tauri-plugin-log = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-store = "2"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+
+# Linux only, and only ever reached through `backend/exec.rs`: the rest of the
+# crate must build on Windows and macOS untouched (PROJECT.md §7). The `send`
+# feature is what lets the monitor live on the hotplug thread.
+[target.'cfg(target_os = "linux")'.dependencies]
+udev = { version = "0.9", features = ["send"] }

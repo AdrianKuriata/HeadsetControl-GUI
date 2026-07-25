@@ -1,11 +1,14 @@
-//! The one place in the app that spawns a process.
+//! The app's impure edges: spawning a process, opening a device node, watching
+//! the kernel for hotplug events.
 //!
-//! Kept apart from the adapter on purpose: everything in
-//! [`super::headsetcontrol`] is pure and gated at 100% coverage against recorded
-//! fixtures, which is only possible because the exec lives behind
-//! [`CliRunner`]. This file has no logic to unit-test — it would be testing
-//! `std::process` — so the coverage gate excludes it and the smoke E2E suite
-//! (#14) covers the real invocation.
+//! Kept apart from the modules beside it on purpose: everything in
+//! [`super::headsetcontrol`], [`super::detect`] and [`super::hotplug`] is pure
+//! and gated at 100% coverage against recorded fixtures, which is only possible
+//! because the calls to the outside world live behind [`CliRunner`],
+//! [`DeviceAccess`] and [`DeviceWatcher`]. This file has nothing to unit-test —
+//! it would be testing `std::process` and libudev — so the coverage gate
+//! excludes it and the smoke E2E suite (#14) covers the real invocation
+//! (ADR 0009, ADR 0011).
 //!
 //! The webview cannot reach any of this: there is no `shell:*` permission in the
 //! Tauri ACL, so spawning `headsetcontrol` is Rust's job alone (ADR 0002).
@@ -14,6 +17,7 @@ use std::process::Command;
 
 use super::detect::{Access, DeviceAccess};
 use super::headsetcontrol::{CliOutput, CliRunner};
+use super::hotplug::{DeviceWatcher, POLL_INTERVAL};
 
 /// Looked up on `PATH`. A binary that is not there cannot be spawned, and that
 /// failure is exactly what [`super::detect`] reads as a missing binary — no
@@ -118,5 +122,91 @@ fn open(path: std::path::PathBuf) -> Access {
         // Busy, gone between listing and opening, or anything else the kernel
         // reports: not a permission verdict, so it must not become one.
         Err(_) => Access::Unknown,
+    }
+}
+
+/// The fallback watcher: it reports on a timer and knows nothing about the OS,
+/// so it works everywhere. Whether anything actually changed is decided by
+/// [`super::hotplug::watch`], which is why a bare timer is enough.
+pub struct PollingWatcher;
+
+impl DeviceWatcher for PollingWatcher {
+    fn wait_for_change(&mut self) -> bool {
+        std::thread::sleep(POLL_INTERVAL);
+        true
+    }
+}
+
+/// The native watcher for this platform, if it has one. `None` sends the app to
+/// [`PollingWatcher`].
+///
+/// On Linux that is udev. Windows and macOS have their own device
+/// notifications; until someone implements them, the fallback is the whole
+/// story there (PROJECT.md §7) — hence the `None`.
+#[cfg(target_os = "linux")]
+pub fn native_watcher() -> Option<UdevWatcher> {
+    UdevWatcher::start()
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn native_watcher() -> Option<PollingWatcher> {
+    None
+}
+
+/// Listens to udev for changes to the device nodes headsets appear as.
+#[cfg(target_os = "linux")]
+pub struct UdevWatcher {
+    socket: udev::MonitorSocket,
+}
+
+/// Every headset this app can talk to is reached through a hidraw node, so this
+/// one subsystem covers them all — and leaves out the rest of the machine's
+/// device traffic, which would only cost needless `headsetcontrol` calls.
+#[cfg(target_os = "linux")]
+const HIDRAW_SUBSYSTEM: &str = "hidraw";
+
+/// The crate's monitor socket is non-blocking and it offers no wait of its own,
+/// so the socket is checked on a short timer. Cheap (one `recv` per tick) and
+/// well below the latency a person notices.
+#[cfg(target_os = "linux")]
+const SOCKET_POLL: std::time::Duration = std::time::Duration::from_millis(200);
+
+/// Plugging one headset in creates several nodes in a burst. Waiting for it to
+/// finish turns the burst into a single look at what is connected.
+#[cfg(target_os = "linux")]
+const BURST_SETTLE: std::time::Duration = std::time::Duration::from_millis(300);
+
+#[cfg(target_os = "linux")]
+impl UdevWatcher {
+    /// `None` when the monitor cannot be opened — no udev daemon, a container
+    /// without one, a kernel without netlink. The app keeps working through the
+    /// fallback rather than losing hotplug entirely.
+    pub fn start() -> Option<Self> {
+        match udev::MonitorBuilder::new()
+            .and_then(|builder| builder.match_subsystem(HIDRAW_SUBSYSTEM))
+            .and_then(udev::MonitorBuilder::listen)
+        {
+            Ok(socket) => Some(Self { socket }),
+            Err(error) => {
+                log::warn!("could not open the udev monitor: {error}");
+                None
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl DeviceWatcher for UdevWatcher {
+    fn wait_for_change(&mut self) -> bool {
+        loop {
+            if self.socket.iter().next().is_some() {
+                std::thread::sleep(BURST_SETTLE);
+                let rest = self.socket.iter().count();
+                log::debug!("udev reported a device change ({rest} more events in the burst)");
+                return true;
+            }
+
+            std::thread::sleep(SOCKET_POLL);
+        }
     }
 }

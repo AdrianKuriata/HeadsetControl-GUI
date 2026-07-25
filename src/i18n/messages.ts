@@ -42,6 +42,9 @@ export const en = {
     },
     ready: {
       capabilities: "Capabilities",
+      battery: "Battery",
+      charging: "Charging",
+      batteryUnavailable: "Not reporting",
     },
     deviceLost: {
       body: "Connection lost — waiting for the headset to come back.",
@@ -91,6 +94,9 @@ export const pl: Messages = {
     },
     ready: {
       capabilities: "Funkcje",
+      battery: "Bateria",
+      charging: "Ładowanie",
+      batteryUnavailable: "Brak odczytu",
     },
     deviceLost: {
       body: "Utracono połączenie — oczekiwanie na ponowne podłączenie zestawu.",

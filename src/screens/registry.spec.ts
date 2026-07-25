@@ -25,9 +25,19 @@ describe("the screen registry", () => {
   it("hands the device to the screens that show one", () => {
     expect(screenProps({ kind: "ready", device: MAXWELL2_XBOX })).toEqual({
       device: MAXWELL2_XBOX,
+      readings: null,
     });
     expect(screenProps({ kind: "device-lost", device: MAXWELL2_XBOX })).toEqual({
       device: MAXWELL2_XBOX,
+    });
+  });
+
+  it("hands the ready screen the values the refresh loop read", () => {
+    const readings = { battery: { status: "available", level: 71 }, chatmix: 64 } as const;
+
+    expect(screenProps({ kind: "ready", device: MAXWELL2_XBOX }, readings)).toEqual({
+      device: MAXWELL2_XBOX,
+      readings,
     });
   });
 

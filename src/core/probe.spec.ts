@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { BackendCallError } from "./backend";
 import { MAXWELL2_XBOX, MockBackend } from "./mock-backend";
-import { probe, refreshDevices } from "./probe";
+import { probe, readDeviceState, refreshDevices } from "./probe";
 
 describe("probe", () => {
   it("reports the connected devices once detection passes", async () => {
@@ -114,5 +114,31 @@ describe("refreshDevices", () => {
     backend.listDevices = () => Promise.reject(new TypeError("boom"));
 
     await expect(refreshDevices(backend)).rejects.toThrow(TypeError);
+  });
+});
+
+describe("readDeviceState", () => {
+  it("reads the live values of a device", async () => {
+    await expect(readDeviceState(new MockBackend(), MAXWELL2_XBOX.id)).resolves.toEqual({
+      battery: { status: "available", level: 92 },
+      chatmix: 64,
+    });
+  });
+
+  it("reads nothing when the device does not answer", async () => {
+    const backend = new MockBackend();
+    backend.fail("deviceState", {
+      kind: "error",
+      error: { kind: "failed", message: "Could not open device" },
+    });
+
+    await expect(readDeviceState(backend, MAXWELL2_XBOX.id)).resolves.toBeUndefined();
+  });
+
+  it("lets an unexpected error through", async () => {
+    const backend = new MockBackend();
+    backend.deviceState = () => Promise.reject(new TypeError("boom"));
+
+    await expect(readDeviceState(backend, MAXWELL2_XBOX.id)).rejects.toThrow(TypeError);
   });
 });
