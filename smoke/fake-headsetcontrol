@@ -1,0 +1,67 @@
+#!/bin/sh
+# A stand-in for the `headsetcontrol` binary, driven entirely by the environment.
+#
+# The smoke suite (#14) puts this on PATH so the *real* Rust adapter can be
+# exercised against recorded output — including shapes no hardware can be asked
+# to produce on demand. It prints fixtures and nothing else; it never touches a
+# device.
+#
+#   SMOKE_SCENARIO   which answer to give (default: healthy)
+#   SMOKE_FIXTURES   directory holding docs/fixtures/*.json
+#   SMOKE_LOG        optional file to append every invocation's arguments to
+set -eu
+
+scenario="${SMOKE_SCENARIO:-healthy}"
+fixtures="${SMOKE_FIXTURES:?SMOKE_FIXTURES must point at docs/fixtures}"
+
+if [ -n "${SMOKE_LOG:-}" ]; then
+  printf '%s\n' "$*" >>"$SMOKE_LOG"
+fi
+
+# A write is any call carrying one of the CLI's setter flags; everything else is
+# a read. The two answer in different shapes (`actions` vs `devices`), which is
+# exactly what the adapter has to tell apart.
+writing=no
+for arg in "$@"; do
+  case "$arg" in
+    -s | -i | -v | -p | -l | -n | -r | --noise-filter | --microphone-volume | \
+      --microphone-mute-led-brightness | --volume-limiter | --bt-when-powered-on | \
+      --bt-call-volume)
+      writing=yes
+      ;;
+  esac
+done
+
+case "$scenario" in
+  hang)
+    # Never answers: the adapter's call timeout is what has to end this.
+    sleep 60
+    ;;
+  malformed)
+    cat "$fixtures/malformed-truncated.json"
+    ;;
+  old-release)
+    cat "$fixtures/old-release.json"
+    ;;
+  no-devices)
+    cat "$fixtures/no-devices.json"
+    ;;
+  healthy)
+    if [ "$writing" = yes ]; then
+      cat "$fixtures/write-action-success.json"
+    else
+      cat "$fixtures/maxwell2-xbox-output-json.json"
+    fi
+    ;;
+  write-refused)
+    if [ "$writing" = yes ]; then
+      cat "$fixtures/write-actions-mixed.json"
+    else
+      cat "$fixtures/maxwell2-xbox-output-json.json"
+    fi
+    ;;
+  *)
+    echo "unknown SMOKE_SCENARIO: $scenario" >&2
+    exit 64
+    ;;
+esac

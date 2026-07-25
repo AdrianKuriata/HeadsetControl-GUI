@@ -89,6 +89,28 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  smoke:
+    name: Smoke E2E
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      # The WebDriver the webview speaks, and a display for it to draw on.
+      - name: Install the WebDriver and a virtual display
+        run: |
+          sudo apt-get install -y --no-install-recommends webkit2gtk-driver xvfb
+      - name: Cache tauri-driver
+        id: driver
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/tauri-driver
+          key: tauri-driver-${{ runner.os }}
+      - if: steps.driver.outputs.cache-hit != 'true'
+        run: cargo install tauri-driver --locked
+      # The real binary, the real adapter — only `headsetcontrol` is a fake.
+      - run: make build-ci
+      - run: xvfb-run -a make smoke
+
   commits:
     name: Commit messages
     if: github.event_name == 'pull_request'

@@ -13,7 +13,8 @@
 //! The webview cannot reach any of this: there is no `shell:*` permission in the
 //! Tauri ACL, so spawning `headsetcontrol` is Rust's job alone (ADR 0002).
 
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 use super::detect::{Access, DeviceAccess};
 use super::headsetcontrol::{CliOutput, CliRunner};
@@ -24,14 +25,48 @@ use super::hotplug::{DeviceWatcher, POLL_INTERVAL};
 /// separate search of the filesystem is needed.
 pub const BINARY: &str = "headsetcontrol";
 
+/// How long a single `headsetcontrol` call may take before it is killed.
+///
+/// A hung call would otherwise hang the app: reads happen on the refresh loop
+/// and detection blocks the first screen. Generous on purpose — the CLI opens
+/// USB devices, and a busy hub can take a moment — but bounded.
+const CALL_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// How often the wait for a call to finish looks again.
+const WAIT_STEP: Duration = Duration::from_millis(20);
+
 /// Runs the real `headsetcontrol`.
 pub struct ProcessRunner;
 
 impl CliRunner for ProcessRunner {
     fn run(&self, args: &[String]) -> Result<CliOutput, String> {
-        let output = Command::new(BINARY)
+        let mut child = Command::new(BINARY)
             .args(args)
-            .output()
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| error.to_string())?;
+
+        // `output()` would block forever on a binary that never answers, and
+        // the app would sit on the startup screen with nothing to show for it.
+        let deadline = Instant::now() + CALL_TIMEOUT;
+
+        loop {
+            match child.try_wait() {
+                Ok(Some(_status)) => break,
+                Err(error) => return Err(error.to_string()),
+                Ok(None) if Instant::now() >= deadline => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!("{BINARY} did not answer within {CALL_TIMEOUT:?}"));
+                }
+                Ok(None) => std::thread::sleep(WAIT_STEP),
+            }
+        }
+
+        let output = child
+            .wait_with_output()
             .map_err(|error| error.to_string())?;
 
         // Not `from_utf8`: a device name can carry whatever bytes its firmware
