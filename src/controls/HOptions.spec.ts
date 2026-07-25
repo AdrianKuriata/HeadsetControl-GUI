@@ -112,4 +112,14 @@ describe("HOptions", () => {
     expect(document.activeElement).toBe(radios[2].element);
     wrapper.unmount();
   });
+
+  it("marks nothing as chosen when the value is not known yet", () => {
+    const wrapper = mount(HOptions, {
+      props: { modelValue: null, options, label: "Noise filter" },
+    });
+
+    expect(wrapper.findAll('[aria-checked="true"]')).toHaveLength(0);
+    // A tab stop still exists, so the group stays reachable by keyboard.
+    expect(wrapper.findAll('[tabindex="0"]')).toHaveLength(1);
+  });
 });

@@ -1,7 +1,7 @@
 import type { Component } from "vue";
 
 import type { AppState } from "../core/state-machine";
-import type { DeviceState } from "../core/types.gen";
+import type { DeviceState, ParamValue } from "../core/types.gen";
 import BadVersionScreen from "./BadVersionScreen.vue";
 import CheckingBinaryScreen from "./CheckingBinaryScreen.vue";
 import DeviceLostScreen from "./DeviceLostScreen.vue";
@@ -25,20 +25,30 @@ export const SCREENS: Record<AppState["kind"], Component> = {
   "device-lost": DeviceLostScreen,
 };
 
+/** What the device store knows about the headset on screen (#10, #11). */
+export interface DeviceValues {
+  /** Read back by the refresh loop; `null` until the first read. */
+  readings: DeviceState | null;
+  /** The last value written per capability. */
+  params: Record<string, ParamValue>;
+}
+
+const NOTHING_KNOWN: DeviceValues = { readings: null, params: {} };
+
 /**
  * The props a state hands to its screen.
  *
- * `readings` are the values the refresh loop keeps up to date (#10); they are
- * not part of the state machine, because a battery percentage never decides
- * which screen is shown.
+ * The values are passed alongside the state rather than inside it: a battery
+ * percentage never decides which screen is shown, so it has no business in the
+ * state machine.
  */
 export function screenProps(
   state: AppState,
-  readings: DeviceState | null = null,
+  values: DeviceValues = NOTHING_KNOWN,
 ): Record<string, unknown> {
   switch (state.kind) {
     case "ready":
-      return { device: state.device, readings };
+      return { device: state.device, readings: values.readings, params: values.params };
 
     case "device-lost":
       return { device: state.device };

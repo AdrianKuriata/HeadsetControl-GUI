@@ -160,8 +160,12 @@ The app is a GUI over the external `headsetcontrol` CLI. Two rules shape everyth
 1. **The UI is rendered from capabilities, not from device models.** `headsetcontrol
    --output json` reports what a headset supports; each capability maps to exactly one
    component via `src/features/registry.ts`. Adding a feature = new file in `features/`
-   + one registry entry, with no edits to existing files. An unknown capability is logged
-   and ignored, never a crash.
+   + one registry entry, with no edits to existing files. Every row takes the same props
+   (last written value + device readings) and emits one `change` event, which is how
+   `ReadyScreen` renders them without naming a capability; a row with no value shows
+   `—`, never "off" — the CLI cannot read most settings back
+   ([ADR 0013](docs/decisions/0013-feature-row-contract.md)). An unknown capability is
+   logged and ignored, never a crash.
 2. **Rust knows nothing about headset models** — only capabilities and values.
    Model-specific knowledge (EQ preset names, band frequencies, PID→platform mapping)
    lives in `src/profiles/`, resolved by `(vid, pid)` with a `GenericProfile` fallback.
@@ -229,10 +233,11 @@ src/
 │   ├── generic.ts
 │   └── audeze-maxwell2.ts
 ├── styles/index.css      # the only stylesheet: fonts + Tailwind + @theme tokens (main.ts imports it)
-├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout, HToast
+├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout, HToast, HRow
 │                         #   no strings, no domain logic — labels/values arrive as props/slots
 ├── features/             # 1 capability = 1 component (SRP)
 │   ├── SidetoneRow.vue, ChatmixRow.vue, EqualizerSection.vue, …
+│   ├── contract.ts       # the props every row takes + the one event it emits
 │   └── registry.ts       # capability → component map (OCP)
 └── App.vue               # state machine + renders features from capabilities
 ```

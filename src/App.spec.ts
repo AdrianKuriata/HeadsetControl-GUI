@@ -232,18 +232,32 @@ describe("App", () => {
     app.unmount();
   });
 
+  it("writes what a feature row asks for", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    // The sidetone row of the connected device, moved by the user.
+    await app.get('[data-capability="CAP_SIDETONE"] input').setValue(64);
+    await flushPromises();
+
+    expect(backend.writes).toEqual([
+      { deviceId: MAXWELL2_XBOX.id, param: "CAP_SIDETONE", value: { kind: "int", value: 64 } },
+    ]);
+    expect(useDeviceStore().params).toEqual({ CAP_SIDETONE: { kind: "int", value: 64 } });
+  });
+
   it("reports a refused write in a toast, with the value already rolled back", async () => {
     const backend = scriptedBackend();
     const app = mountApp();
     await flushPromises();
 
-    const device = useDeviceStore();
     backend.fail("setParam", { kind: "error", error: { kind: "failed", message: "asleep" } });
-    await device.write(backend, "CAP_SIDETONE", { kind: "int", value: 96 });
+    await app.get('[data-capability="CAP_SIDETONE"] input').setValue(96);
     await flushPromises();
 
     expect(app.get('[data-part="toast"]').text()).toContain("CAP_SIDETONE");
-    expect(device.params).toEqual({});
+    expect(useDeviceStore().params).toEqual({});
 
     await app.get('[data-part="dismiss"]').trigger("click");
     expect(app.find('[data-part="toast"]').exists()).toBe(false);
