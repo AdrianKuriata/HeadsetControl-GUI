@@ -14,7 +14,7 @@ COMMITLINT_TO ?= HEAD
 .PHONY: help setup dev dev-mock build build-ci gen \
         fe-lint fe-typecheck fe-test fe-coverage fe-e2e fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
-        commitlint format lint test coverage ci gen-check
+        commitlint format lint test coverage ci gen-check audit
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -83,6 +83,16 @@ rs-check: rs-fmt rs-lint rs-coverage ## All Rust gates
 commitlint: ## Check this branch's commit messages (Conventional Commits)
 	npx --no -- commitlint --from $(COMMITLINT_FROM) --to $(COMMITLINT_TO)
 
+
+audit: ## Dependency advisories (npm + cargo)
+	# What ships is the gate. A devDependency advisory never reaches a user, so
+	# it is printed and left to Dependabot instead of blocking an unrelated PR —
+	# today that is the js-beautify chain under @vue/test-utils.
+	npm audit --omit=dev --audit-level=high
+	-npm audit
+	# Needs cargo-audit (`cargo install cargo-audit`); CI installs it from a
+	# prebuilt binary. Kept out of `make ci` for that reason — it has its own job.
+	cargo audit --file $(dir $(RS_MANIFEST))Cargo.lock
 
 format: ## Auto-format everything (prettier + rustfmt)
 	npm run format

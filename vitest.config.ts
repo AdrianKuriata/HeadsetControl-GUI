@@ -5,6 +5,9 @@ import { defineConfig } from "vitest/config";
 // deliberately does not contribute to coverage — it measures flows, not lines.
 export default defineConfig({
   plugins: [vue()],
+  // Unit tests exercise both backends, so this build has the mock compiled in.
+  // The production bundle does not — see `src/core/create-backend.ts`.
+  define: { __MOCK_BACKEND__: "true" },
   test: {
     environment: "jsdom",
     include: ["src/**/*.spec.ts"],

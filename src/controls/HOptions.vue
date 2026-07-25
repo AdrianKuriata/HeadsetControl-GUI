@@ -21,8 +21,13 @@ const selected = computed(() => props.options.findIndex((o) => o.value === props
 const focusIndex = computed(() => Math.max(selected.value, 0));
 
 function select(index: number): void {
-  if (index === selected.value) return;
-  emit("update:modelValue", props.options[index].value);
+  // Every caller passes an in-range index (the v-for, or a MOVES result clamped
+  // to the last one), so the lookup is a formality — but `noUncheckedIndexedAccess`
+  // is right that an array index proves nothing, and reading `.value` off
+  // `undefined` would be the crash it prevents.
+  const option = props.options[index];
+  if (!option || index === selected.value) return;
+  emit("update:modelValue", option.value);
 }
 
 const MOVES: Record<string, (current: number, last: number) => number> = {

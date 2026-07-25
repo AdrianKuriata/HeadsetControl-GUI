@@ -35,3 +35,29 @@ tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 # feature is what lets the monitor live on the hotplug thread.
 [target.'cfg(target_os = "linux")'.dependencies]
 udev = { version = "0.9", features = ["send"] }
+
+# Applies to the lib and the bin alike, which is why it lives here rather than
+# as a `#![forbid]` each crate root would have to repeat.
+[lints.rust]
+# The crate talks to hardware only through `headsetcontrol` and libudev, both of
+# which are safe wrappers. Nothing here needs `unsafe`, so nothing may have it.
+unsafe_code = "forbid"
+
+[lints.clippy]
+# On top of clippy's default `correctness`/`suspicious`/`complexity`/`style`.
+# `make rs-lint` runs with `-D warnings`, so each of these is a build failure.
+# Deliberately a short list: lints that fire inside `#[cfg(test)]` too (
+# `unwrap_used`, `indexing_slicing`) would cost every assertion a `.get()` and
+# buy nothing — the gate that matters for the shipped code is `unsafe_code`.
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+
+# Release profile from the Tauri guide: a smaller, symbol-free bundle. `panic`
+# is left at the default unwind — Tauri's own runtime relies on catching a panic
+# in a command rather than aborting the whole app.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

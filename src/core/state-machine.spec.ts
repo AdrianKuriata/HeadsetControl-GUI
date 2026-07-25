@@ -59,18 +59,18 @@ describe("the app starts by checking the binary", () => {
 });
 
 describe("retrying the probe", () => {
-  it.each([
-    { state: { kind: "missing-binary" } as AppState },
-    { state: { kind: "bad-version", found: "2.5.0", required: "3.0.0" } as AppState },
-    { state: { kind: "no-permissions" } as AppState },
+  it.each<{ state: AppState }>([
+    { state: { kind: "missing-binary" } },
+    { state: { kind: "bad-version", found: "2.5.0", required: "3.0.0" } },
+    { state: { kind: "no-permissions" } },
   ])("re-runs the probe from $state.kind", ({ state }) => {
     expect(isRetryable(state)).toBe(true);
     expect(transition(state, { kind: "retry" })).toEqual({ kind: "checking-binary" });
   });
 
-  it.each([
+  it.each<{ state: AppState }>([
     { state: INITIAL_STATE },
-    { state: { kind: "no-device" } as AppState },
+    { state: { kind: "no-device" } },
     { state: READY },
     { state: LOST },
   ])("offers no retry in $state.kind", ({ state }) => {

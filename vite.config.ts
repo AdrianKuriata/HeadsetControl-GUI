@@ -9,6 +9,15 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [vue(), tailwindcss()],
 
+  // Whether MockBackend is compiled in at all. A literal, so the bundler can see
+  // the branch in `src/core/create-backend.ts` is dead and drop the scripted
+  // backend from anything users install — see `src/vite-env.d.ts` for why an
+  // `import.meta.env` check cannot replace this.
+  define: {
+    // @ts-expect-error process is a nodejs global
+    __MOCK_BACKEND__: JSON.stringify(process.env.VITE_BACKEND === "mock"),
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

@@ -31,7 +31,7 @@ runs:
           libxdo-dev \
           patchelf
 
-    - uses: actions/setup-node@v7
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: lts/*
         cache: npm
@@ -40,10 +40,14 @@ runs:
       shell: bash
       run: npm ci
 
-    - uses: dtolnay/rust-toolchain@stable
+    # Pinned to the commit the `stable` branch was at. That branch is also how
+    # this action normally picks its toolchain, so pinning away from it means
+    # naming the toolchain explicitly instead.
+    - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
       with:
+        toolchain: stable
         components: ${{ inputs.rust-components }}
 
-    - uses: Swatinem/rust-cache@v2
+    - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
       with:
         workspaces: ./src-tauri -> target
