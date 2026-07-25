@@ -17,13 +17,18 @@ export function resetBackend(): void {
 
 /**
  * Picks the backend the app runs against. `VITE_BACKEND=mock` selects the
- * scripted one — that is how `make dev` runs without hardware and how the E2E
- * suite drives hotplug, failures and delays.
+ * scripted one — that is how `make dev-mock` runs without hardware and how the
+ * E2E suite drives hotplug, failures and delays.
+ *
+ * A build made without that flag has no mock to pick: `__MOCK_BACKEND__` is a
+ * literal `false` there, so the branch below is dead and the bundler drops
+ * {@link MockBackend} and its fixture device along with it. Test seams should
+ * not ship, and neither should the `window` handle that scripts them.
  */
 export function createBackend(
   flag: string | undefined = import.meta.env.VITE_BACKEND,
 ): HeadsetBackend {
-  if (flag !== MOCK_BACKEND_FLAG) {
+  if (!__MOCK_BACKEND__ || flag !== MOCK_BACKEND_FLAG) {
     return tauriBackend;
   }
 

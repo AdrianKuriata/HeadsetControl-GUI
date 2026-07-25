@@ -21,9 +21,16 @@ export interface MockScenario {
   failures: Partial<Record<MockOperation, MockFailure>>;
 }
 
+// Named separately so `DEFAULT_SCENARIO` can key on it without reading it back
+// off the device. A computed key like `[MAXWELL2_XBOX.id]` is a property read,
+// and Rollup has to assume a getter could run — enough to pin this fixture into
+// a production bundle that has already dropped everything else in this file
+// (see `create-backend.ts`).
+const MAXWELL2_XBOX_ID = "3329:4b28";
+
 /** One connected Maxwell 2 Xbox dongle — the recorded reference device. */
 export const MAXWELL2_XBOX: Device = {
-  id: "3329:4b28",
+  id: MAXWELL2_XBOX_ID,
   name: "Audeze Maxwell 2",
   vendor: "Audeze LLC",
   product: "Audeze Maxwell XBOX Dongle",
@@ -44,7 +51,7 @@ export const DEFAULT_SCENARIO: MockScenario = {
   detection: { kind: "ready" },
   devices: [MAXWELL2_XBOX],
   states: {
-    [MAXWELL2_XBOX.id]: {
+    [MAXWELL2_XBOX_ID]: {
       battery: { status: "available", level: 92 },
       chatmix: 64,
     },
