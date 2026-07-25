@@ -54,7 +54,7 @@ pub fn run() {
     // spawn and the look at device nodes (#8, #9). Shared, because the hotplug
     // thread lists devices through the same backend the commands use.
     let backend: Arc<dyn backend::HeadsetBackend> = Arc::new(backend::HeadsetControlBackend::new(
-        backend::ProcessRunner,
+        backend::ProcessRunner::new(),
         backend::HidrawAccess,
     ));
     let watched = Arc::clone(&backend);
