@@ -31,9 +31,15 @@ export interface HeadsetBackend {
 
 /** A failed backend call, carrying the typed error the backend reported. */
 export class BackendCallError extends Error {
-  constructor(readonly reason: BackendError) {
+  // Assigned in the body rather than declared as a constructor parameter
+  // property: that shorthand emits code, and `erasableSyntaxOnly` keeps this
+  // codebase to syntax esbuild can strip (tsconfig.json).
+  readonly reason: BackendError;
+
+  constructor(reason: BackendError) {
     super(describeBackendError(reason));
     this.name = "BackendCallError";
+    this.reason = reason;
   }
 }
 

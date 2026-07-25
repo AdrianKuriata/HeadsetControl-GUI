@@ -17,8 +17,48 @@ export default defineConfig(
     "src/core/types.gen.ts",
   ]),
   js.configs.recommended,
-  tseslint.configs.recommended,
+  // Type-aware, not just syntactic. What this buys over `recommended`:
+  // `no-floating-promises` and `no-misused-promises`, which are the rules that
+  // matter in a codebase where every backend call is async and a dropped
+  // rejection would be swallowed rather than shown (`src/core/probe.ts`).
+  tseslint.configs.recommendedTypeChecked,
   pluginVue.configs["flat/recommended"],
+  {
+    // `projectService` finds the tsconfig for each file instead of naming one,
+    // which is what lets `src/**` and the two config files be linted from the
+    // same run.
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+        extraFileExtensions: [".vue"],
+      },
+    },
+  },
+  // Plain JS tooling has no program behind it — the type-aware rules cannot run
+  // there and would only error about a missing project.
+  {
+    files: ["**/*.{js,mjs,cjs}"],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
+  {
+    rules: {
+      // ESLint's TypeScript parser cannot resolve a `.vue` import — only vue-tsc
+      // can — so every component that reaches TypeScript arrives as an error
+      // type and the `no-unsafe-*` family fires on it (`screens/registry.ts`,
+      // `main.ts`). They report the parser's blind spot, not the code, and type
+      // soundness is already `make fe-typecheck`'s job.
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      // `HeadsetBackend` is an async interface. An implementation that has a
+      // ready answer — MockBackend's — still has to return a promise, and
+      // dropping `async` to satisfy this rule would only mean writing
+      // `Promise.resolve` by hand.
+      "@typescript-eslint/require-await": "off",
+    },
+  },
   {
     files: ["**/*.vue"],
     languageOptions: {

@@ -12,8 +12,14 @@ const { t } = useI18n({ useScope: "global" });
 
 const props = defineProps<{
   device: Device;
-  /** Live values from the refresh loop (#10); `null` until the first read. */
-  readings?: DeviceState | null;
+  /**
+   * Live values from the refresh loop (#10); `null` until the first read.
+   *
+   * `undefined` is spelled out because `exactOptionalPropertyTypes` stops
+   * treating "not passed" and "passed as undefined" as the same thing, and Vue
+   * hands a component both.
+   */
+  readings?: DeviceState | null | undefined;
 }>();
 
 // A first readout of the polled values, in the same placeholder idiom as the

@@ -18,7 +18,19 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    /* `strict` stops short of these three, and each one covers a hole this
+       codebase can actually fall into. */
+    // Indexing a Device[] or a Record<string, DeviceState> yields `| undefined`,
+    // which is the truth: the device store looks devices up by id.
+    "noUncheckedIndexedAccess": true,
+    // `{ found?: string }` and `{ found: string | undefined }` stop being the
+    // same type — the Detection contract distinguishes absent from null.
+    "exactOptionalPropertyTypes": true,
+    // No enums or parameter properties: syntax that needs more than type
+    // erasure cannot be compiled by esbuild, which is what Vite runs.
+    "erasableSyntaxOnly": true,
+    "noImplicitOverride": true
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }]

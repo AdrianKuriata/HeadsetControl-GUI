@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { at } from "../test-support";
 import { BackendCallError, DEVICES_CHANGED, describeBackendError, tauriBackend } from "./backend";
 import type { Device, DeviceState } from "./types.gen";
 
@@ -96,7 +97,8 @@ describe("tauriBackend", () => {
     const unsubscribe = await tauriBackend.onDevicesChanged(handler);
 
     expect(listen).toHaveBeenCalledWith(DEVICES_CHANGED, expect.any(Function));
-    listen.mock.calls[0][1]({ event: DEVICES_CHANGED, payload: null });
+    const [, deliver] = at(listen.mock.calls, 0);
+    deliver({ event: DEVICES_CHANGED, payload: null });
     expect(handler).toHaveBeenCalledOnce();
     expect(unsubscribe).toBe(unlisten);
   });

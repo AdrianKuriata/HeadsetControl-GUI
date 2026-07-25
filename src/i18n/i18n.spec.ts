@@ -69,7 +69,7 @@ describe("setLocale", () => {
 
 function keysOf(object: object, prefix = ""): string[] {
   return Object.entries(object)
-    .flatMap(([key, value]) =>
+    .flatMap(([key, value]: [string, unknown]) =>
       typeof value === "object" && value !== null
         ? keysOf(value, `${prefix}${key}.`)
         : [`${prefix}${key}`],

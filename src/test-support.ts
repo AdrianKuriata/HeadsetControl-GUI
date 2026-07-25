@@ -26,3 +26,21 @@ export function mountWithI18n<C extends Component>(
   });
   return { wrapper, i18n };
 }
+
+/**
+ * The element at `index`, or a failed test saying it was not there.
+ *
+ * `noUncheckedIndexedAccess` types every array index as possibly `undefined`,
+ * which is right — `findAll()` really can come back short. Assertions would
+ * otherwise be written with `!`, and that turns a selector that stopped matching
+ * into `Cannot read properties of undefined` instead of a named failure.
+ */
+export function at<T>(items: readonly T[], index: number): T {
+  const item = items[index];
+
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}, found ${items.length}`);
+  }
+
+  return item;
+}
