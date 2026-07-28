@@ -35,7 +35,13 @@ done
 case "$scenario" in
   hang)
     # Never answers: the adapter's call timeout is what has to end this.
-    sleep 60
+    #
+    # `exec` matters. Without it the sleep is a *child* of this shell, and
+    # killing the shell on timeout leaves the sleep holding the stdout pipe the
+    # adapter is still reading — so the call would take as long as the sleep
+    # rather than as long as the timeout. A real `headsetcontrol` forks nothing;
+    # `exec` makes this fake behave the same way, one hung process.
+    exec sleep 60
     ;;
   malformed)
     cat "$fixtures/malformed-truncated.json"

@@ -31,8 +31,13 @@ const DRIVER = await onPath(process.env.TAURI_DRIVER ?? "tauri-driver");
 const NATIVE_DRIVER = await onPath(process.env.WEBKIT_WEBDRIVER ?? "WebKitWebDriver");
 const PORT = Number(process.env.SMOKE_PORT ?? 4444);
 
-/** Long enough to cover the adapter's own 10 s call timeout and a cold launch. */
-const TIMEOUT = 30_000;
+/**
+ * Long enough to cover a cold launch plus the worst wait a case can produce: two
+ * of the adapter's 10 s call timeouts back to back, because the hotplug loop
+ * lists devices on its own thread while the startup probe runs and the two are
+ * serialised against each other. Twice that, so a slow CI runner is not a flake.
+ */
+const TIMEOUT = 45_000;
 
 const SIDETONE = "[data-capability='CAP_SIDETONE']";
 
