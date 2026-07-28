@@ -43,6 +43,14 @@ case "$scenario" in
     # `exec` makes this fake behave the same way, one hung process.
     exec sleep 60
     ;;
+  hang-forking)
+    # The same hang, but with a *child* holding the pipes — deliberately no
+    # `exec`. Killing this shell leaves that sleep inheriting stdout, so the
+    # adapter's reader threads see no EOF; the call has to end on the timeout
+    # anyway (issue #50). Nothing upstream forks today, but 4.0.0 is a rewrite
+    # and a bound that only holds for well-behaved binaries is not a bound.
+    sleep 60
+    ;;
   malformed)
     cat "$fixtures/malformed-truncated.json"
     ;;

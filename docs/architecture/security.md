@@ -67,7 +67,7 @@ there — the reasoning is in
 | Rule | Why |
 |---|---|
 | Resolved on `PATH`, **absolute entries only** | `Command::new(name)` lets the OS search; on Windows that starts in the working directory, and a relative entry means the same anywhere |
-| Killed after `CALL_TIMEOUT` (10 s) | A wedged binary would otherwise block its caller forever |
+| Killed after `CALL_TIMEOUT` (10 s) | A wedged binary would otherwise block its caller forever. The kill reaches the spawned process only, so a timed-out call also abandons its output readers rather than joining them — a descendant holding the pipes must not be able to outlast the bound (#50) |
 | At most `MAX_OUTPUT_BYTES` (1 MiB) kept per stream | Broken or hostile output must not fill memory; reading continues past the cap so the child never blocks on a full pipe |
 | One invocation at a time (`Mutex`) | The hotplug loop, the refresh loop and user writes all reach the same hidraw node |
 

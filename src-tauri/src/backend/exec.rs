@@ -89,18 +89,23 @@ impl CliRunner for ProcessRunner {
             .map_err(|error| error.to_string())?;
 
         // Each stream is drained on its own thread: a child that fills one pipe
-        // while this side waits on the other would deadlock.
+        // while this side waits on the other would deadlock. Threads rather than
+        // an event loop is also what lets a timed-out call walk away from them —
+        // see below.
         let stdout = child.stdout.take().map(capture);
         let stderr = child.stderr.take().map(capture);
 
-        let outcome = wait_for(&mut child);
+        wait_for(&mut child)?;
 
-        // Joining cannot hang either way — the pipes reach EOF when the child
-        // exits, and `wait_for` kills it before it gives up on one.
-        let stdout = stdout.map(join).unwrap_or_default();
-        let stderr = stderr.map(join).unwrap_or_default();
-
-        outcome.map(|()| CliOutput { stdout, stderr })
+        // Only reached once the child is gone of its own accord, and only then
+        // is joining safe: a pipe reaches EOF when its *last* holder lets go,
+        // which is the child exactly as long as it forked nothing. A timed-out
+        // call takes the other branch and never joins, because a descendant this
+        // side cannot see may still be holding on (issue #50).
+        Ok(CliOutput {
+            stdout: stdout.map(join).unwrap_or_default(),
+            stderr: stderr.map(join).unwrap_or_default(),
+        })
     }
 }
 
@@ -130,6 +135,11 @@ fn search(path: &std::ffi::OsStr, name: &str) -> Option<PathBuf> {
 }
 
 /// Waits for the child, killing it if it outstays [`CALL_TIMEOUT`].
+///
+/// The kill reaches the process that was spawned and nothing below it. Killing a
+/// whole process group would need `libc::killpg`, and this crate forbids
+/// `unsafe`; abandoning the readers on the way out is what makes the timeout hold
+/// regardless (see the caller).
 fn wait_for(child: &mut Child) -> Result<(), String> {
     let deadline = Instant::now() + CALL_TIMEOUT;
 
@@ -153,6 +163,13 @@ fn wait_for(child: &mut Child) -> Result<(), String> {
     }
 }
 
+/// Drains one stream on its own thread.
+///
+/// A call that times out drops the handle instead of joining it, so this thread
+/// can outlive its call — for exactly as long as whatever still holds the write
+/// end. It costs one blocked thread and no more: [`read_capped`] keeps reading
+/// past [`MAX_OUTPUT_BYTES`] but stops keeping, and the result is dropped with
+/// the handle.
 fn capture(source: impl Read + Send + 'static) -> JoinHandle<String> {
     std::thread::spawn(move || read_capped(source))
 }

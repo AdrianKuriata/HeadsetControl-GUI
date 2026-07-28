@@ -116,6 +116,7 @@ asserts the adapter assembled the CLI arguments the binary actually wants
 | `supported-release` | the version gate accepts a released `4.0.0` — the `healthy` fixture is a source build, whose version is never compared |
 | `malformed` | output the parser cannot read is refused, never half-read |
 | `hang` | a binary that never answers is killed by the call timeout ([ADR 0012](../decisions/0012-hardening-the-cli-boundary-and-the-supply-chain.md)) |
+| `hang-forking` | the same hang with a *child* holding the pipes — the timeout bounds the call, not just the process that was spawned (#50) |
 | *(no binary)* | an empty `PATH` lands on the missing-binary screen |
 | `healthy` + write | the write reaches the CLI with the right arguments, and the value sticks |
 | `write-refused` | an `actions` entry reporting failure — with exit code 0 — rolls the value back and toasts |
