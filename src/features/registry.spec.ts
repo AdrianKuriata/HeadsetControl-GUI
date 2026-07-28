@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { at } from "../test-support";
 import SidetoneRow from "./SidetoneRow.vue";
 import { FEATURES, featureRows } from "./registry";
 
@@ -12,7 +13,7 @@ describe("the feature registry", () => {
     const rows = featureRows(["CAP_NOISE_FILTER", "CAP_SIDETONE"]);
 
     expect(rows.map((row) => row.capability)).toEqual(["CAP_NOISE_FILTER", "CAP_SIDETONE"]);
-    expect(rows[1].component).toBe(SidetoneRow);
+    expect(at(rows, 1).component).toBe(SidetoneRow);
   });
 
   it("renders nothing for a device that reports nothing", () => {

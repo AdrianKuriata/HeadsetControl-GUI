@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ParamValue } from "../core/types.gen";
-import { mountWithI18n } from "../test-support";
+import { at, mountWithI18n } from "../test-support";
 import ChatmixRow from "./ChatmixRow.vue";
 import EqualizerSection from "./EqualizerSection.vue";
 import InactiveTimeRow from "./InactiveTimeRow.vue";
@@ -139,7 +139,7 @@ describe("NoiseFilterRow", () => {
   it("writes the level that was picked", async () => {
     const { wrapper } = mountWithI18n(NoiseFilterRow, { props: { value: int(0) } });
 
-    await wrapper.findAll('[role="radio"]')[2].trigger("click");
+    await at(wrapper.findAll('[role="radio"]'), 2).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[int(2)]]);
   });
@@ -147,7 +147,7 @@ describe("NoiseFilterRow", () => {
   it("marks the level in use", () => {
     const { wrapper } = mountWithI18n(NoiseFilterRow, { props: { value: int(1) } });
 
-    expect(wrapper.findAll('[role="radio"]')[1].attributes("aria-checked")).toBe("true");
+    expect(at(wrapper.findAll('[role="radio"]'), 1).attributes("aria-checked")).toBe("true");
     expect(wrapper.get('[data-part="level"]').text()).toBe("low");
   });
 
@@ -162,7 +162,7 @@ describe("VoicePromptsRow", () => {
   it("writes a flag rather than a number", async () => {
     const { wrapper } = mountWithI18n(VoicePromptsRow, { props: { value: bool(false) } });
 
-    await wrapper.findAll('[role="radio"]')[0].trigger("click");
+    await at(wrapper.findAll('[role="radio"]'), 0).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[bool(true)]]);
   });
@@ -178,7 +178,7 @@ describe("LightsRow", () => {
   it("turns the lights off", async () => {
     const { wrapper } = mountWithI18n(LightsRow, { props: { value: bool(true) } });
 
-    await wrapper.findAll('[role="radio"]')[1].trigger("click");
+    await at(wrapper.findAll('[role="radio"]'), 1).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[bool(false)]]);
   });
@@ -194,7 +194,7 @@ describe("InactiveTimeRow", () => {
   it("steps up the ladder rather than one minute at a time", async () => {
     const { wrapper } = mountWithI18n(InactiveTimeRow, { props: { value: int(15) } });
 
-    await wrapper.findAll("button")[1].trigger("click");
+    await at(wrapper.findAll("button"), 1).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[int(30)]]);
   });
@@ -202,7 +202,7 @@ describe("InactiveTimeRow", () => {
   it("steps back down", async () => {
     const { wrapper } = mountWithI18n(InactiveTimeRow, { props: { value: int(15) } });
 
-    await wrapper.findAll("button")[0].trigger("click");
+    await at(wrapper.findAll("button"), 0).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[int(10)]]);
   });
@@ -210,7 +210,7 @@ describe("InactiveTimeRow", () => {
   it("stops at never", async () => {
     const { wrapper } = mountWithI18n(InactiveTimeRow, { props: { value: int(0) } });
 
-    await wrapper.findAll("button")[0].trigger("click");
+    await at(wrapper.findAll("button"), 0).trigger("click");
 
     expect(wrapper.emitted("change")).toBeUndefined();
   });
@@ -218,7 +218,7 @@ describe("InactiveTimeRow", () => {
   it("stops at the longest the CLI accepts", async () => {
     const { wrapper } = mountWithI18n(InactiveTimeRow, { props: { value: int(90) } });
 
-    await wrapper.findAll("button")[1].trigger("click");
+    await at(wrapper.findAll("button"), 1).trigger("click");
 
     expect(wrapper.emitted("change")).toBeUndefined();
   });
@@ -241,7 +241,7 @@ describe("InactiveTimeRow", () => {
 
     expect(wrapper.get('[data-part="after"]').text()).toBe("120 min");
 
-    await wrapper.findAll("button")[1].trigger("click");
+    await at(wrapper.findAll("button"), 1).trigger("click");
     expect(wrapper.emitted("change")).toBeUndefined();
   });
 
@@ -249,7 +249,7 @@ describe("InactiveTimeRow", () => {
     // A headset left at 20 minutes by another tool: the next rung up is 30.
     const { wrapper } = mountWithI18n(InactiveTimeRow, { props: { value: int(20) } });
 
-    await wrapper.findAll("button")[1].trigger("click");
+    await at(wrapper.findAll("button"), 1).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[int(45)]]);
   });
@@ -265,7 +265,7 @@ describe("EqualizerSection", () => {
   it("writes the preset that was picked, counting from zero", async () => {
     const { wrapper } = mountWithI18n(EqualizerSection, { props: { value: int(0) } });
 
-    await wrapper.findAll('[role="radio"]')[3].trigger("click");
+    await at(wrapper.findAll('[role="radio"]'), 3).trigger("click");
 
     expect(wrapper.emitted("change")).toEqual([[int(3)]]);
   });

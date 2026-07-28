@@ -34,8 +34,12 @@ test.describe("startup", () => {
 
     // The user installed it; the retry button re-runs the whole probe.
     await page.evaluate(() => {
-      const mock = (window as unknown as Record<string, { scenario: { detection: unknown } }>)
-        .__headsetDeckMock;
+      const mock = (
+        window as unknown as Record<string, { scenario: { detection: unknown } } | undefined>
+      ).__headsetDeckMock;
+      if (!mock) {
+        throw new Error("the mock backend is not on the page");
+      }
       mock.scenario.detection = { kind: "ready" };
     });
     await page.getByRole("button", { name: "Check again" }).click();

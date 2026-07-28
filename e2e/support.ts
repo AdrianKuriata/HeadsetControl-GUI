@@ -46,7 +46,10 @@ export async function boot(page: Page, scenario: Partial<MockScenario> = {}): Pr
 export async function plug(page: Page, devices: Device[]): Promise<void> {
   await page.evaluate(
     ({ key, connected }) => {
-      const mock = (window as unknown as Record<string, MockHandle>)[key];
+      const mock = (window as unknown as Record<string, MockHandle | undefined>)[key];
+      if (!mock) {
+        throw new Error(`the mock backend is not on the page as ${key}`);
+      }
       mock.setDevices(connected);
     },
     { key: MOCK_BACKEND_GLOBAL, connected: devices },
@@ -57,7 +60,10 @@ export async function plug(page: Page, devices: Device[]): Promise<void> {
 export async function refuseWrites(page: Page, message: string): Promise<void> {
   await page.evaluate(
     ({ key, reason }) => {
-      const mock = (window as unknown as Record<string, MockHandle>)[key];
+      const mock = (window as unknown as Record<string, MockHandle | undefined>)[key];
+      if (!mock) {
+        throw new Error(`the mock backend is not on the page as ${key}`);
+      }
       mock.fail("setParam", { kind: "error", error: { kind: "failed", message: reason } });
     },
     { key: MOCK_BACKEND_GLOBAL, reason: message },
@@ -67,7 +73,10 @@ export async function refuseWrites(page: Page, message: string): Promise<void> {
 /** What the app has written to the device so far. */
 export async function writes(page: Page): Promise<MockHandle["writes"]> {
   return page.evaluate((key) => {
-    const mock = (window as unknown as Record<string, MockHandle>)[key];
+    const mock = (window as unknown as Record<string, MockHandle | undefined>)[key];
+    if (!mock) {
+      throw new Error(`the mock backend is not on the page as ${key}`);
+    }
     return mock.writes;
   }, MOCK_BACKEND_GLOBAL);
 }

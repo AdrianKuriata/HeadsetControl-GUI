@@ -89,7 +89,7 @@ CSS classes — the same rule the component tests follow.
 
 Two flows named in #13 are **not** covered here yet. Choosing between several
 connected headsets needs a picker that does not exist (the store supports it,
-[ADR 0012](../decisions/0012-stores-optimistic-writes.md)). Platform accent
+[ADR 0013](../decisions/0013-stores-optimistic-writes.md)). Platform accent
 switching has its mechanism since #15 — unit- and component-tested — but no
 device maps to a platform until the first real profile lands (#17), so the
 end-to-end flow belongs to that PR.
