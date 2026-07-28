@@ -54,9 +54,9 @@ describe("the screen registry", () => {
   });
 
   it("hands the bad-version screen a missing version as such", () => {
-    expect(screenProps({ kind: "bad-version", found: null, required: "3.2.0" })).toEqual({
+    expect(screenProps({ kind: "bad-version", found: null, required: "4.0.0" })).toEqual({
       found: null,
-      required: "3.2.0",
+      required: "4.0.0",
     });
   });
 
