@@ -72,9 +72,14 @@ All gates green locally — do not push red and let CI find it (wastes the user'
 - Conventional Commits, English, issue referenced: `feat(eq): draggable preset points (#16)`.
 - Push only your branch: `git push -u origin HC-<n>-<slug>`.
 - Open a PR to `main` with `Closes #<n>` in the body: summary, what/why, test evidence.
+- **Every PR targets `main`.** Never open one against another `HC-*` branch: merging the
+  parent deletes its branch, and GitHub closes the child **unmerged** instead of
+  retargeting it. That is how #41, #43 and #45 were lost — five issues' work survived
+  only on the last branch of the chain.
 - **Do not merge.** The user reviews and merges (squash). Move on to the next issue only
-  if it doesn't depend on the open PR; otherwise branch from the PR branch and note the
-  merge order in the PR titles.
+  if it doesn't depend on the open PR; otherwise branch from the PR branch, keep the PR
+  pointed at `main`, and note the merge order in the PR titles. After the parent merges,
+  rebase the child onto `main` rather than waiting.
 
 ### 6. After the task — documentation (MANDATORY, every task)
 Before opening the PR, run this docs checklist — a PR without it is not done:
