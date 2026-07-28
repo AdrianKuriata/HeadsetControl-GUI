@@ -49,6 +49,9 @@ case "$scenario" in
   old-release)
     cat "$fixtures/old-release.json"
     ;;
+  supported-release)
+    cat "$fixtures/supported-release.json"
+    ;;
   no-devices)
     cat "$fixtures/no-devices.json"
     ;;

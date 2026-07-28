@@ -71,6 +71,14 @@ const CASES = [
     },
   },
   {
+    // The `healthy` fixture is a source build, whose version the gate cannot
+    // compare and therefore waves through. This is the other half: a real
+    // release number, actually compared against the minimum, and accepted.
+    name: "a released binary at the minimum version lands on the ready screen",
+    scenario: "supported-release",
+    check: (app) => app.expectText("h1", "Audeze Maxwell 2"),
+  },
+  {
     name: "output the adapter cannot read lands on the bad-version screen",
     scenario: "malformed",
     check: (app) => app.expectText("[data-part='body']", "could not be read"),
