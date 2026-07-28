@@ -13,11 +13,14 @@ export const en = {
     writeFailed: "The headset refused the change to {capability}.",
   },
   // Shared by the missing-binary and bad-version screens: both end in the same
-  // place, a source build (see InstallInstructions.vue).
+  // place, a signed package with a source build behind it (InstallInstructions.vue).
   install: {
+    packages: "Install the signed package",
+    verify: "Check the signature first",
+    udev: "The package also installs the udev rules that let this app reach the headset.",
+    source: "Or build it from source",
     dependencies: "Install the build dependencies",
     build: "Build and install headsetcontrol",
-    udev: "The install step also adds the udev rules that let this app reach the headset.",
   },
   // One entry per capability component in `src/features/` (#12). The names are
   // the user's words for a capability, never the CAP_* identifier.
@@ -124,9 +127,12 @@ export const pl: Messages = {
     writeFailed: "Zestaw odrzucił zmianę {capability}.",
   },
   install: {
+    packages: "Zainstaluj podpisany pakiet",
+    verify: "Najpierw sprawdź podpis",
+    udev: "Pakiet instaluje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
+    source: "Albo zbuduj ze źródeł",
     dependencies: "Zainstaluj zależności do budowania",
     build: "Zbuduj i zainstaluj headsetcontrol",
-    udev: "Instalacja dodaje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
   },
   features: {
     unknown: "—",
