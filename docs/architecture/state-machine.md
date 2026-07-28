@@ -28,8 +28,8 @@ stateDiagram-v2
 | State | Screen shows |
 |---|---|
 | `checking-binary` | Startup probe: locate `headsetcontrol`, check version |
-| `missing-binary` | Per-distribution dependencies + upstream's source build |
-| `bad-version` | Found version vs. required minimum, then the same build steps |
+| `missing-binary` | Upstream's signed packages (`.deb`/`.rpm`/AppImage), with a source build behind them |
+| `bad-version` | Found version vs. required minimum, then the same install steps |
 | `no-permissions` | Ready-to-copy `headsetcontrol -u` udev rules + "check again" |
 | `no-device` | Binary fine, no supported headset connected |
 | `ready(device)` | The main configurator, rendered from the device's capabilities |

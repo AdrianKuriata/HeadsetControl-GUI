@@ -43,6 +43,7 @@ parser: keep existing fixtures, add new ones for new formats.
 | [`unknown-capability.json`](../fixtures/unknown-capability.json) | hand-authored | `CAP_FROM_THE_FUTURE` passing through untouched; a charging battery |
 | [`malformed-truncated.json`](../fixtures/malformed-truncated.json) | hand-authored | output cut off mid-string — must be rejected, never half-read |
 | [`old-release.json`](../fixtures/old-release.json) | hand-authored | the healthy output as a *released* `3.1.0` would report it — the version gate's reject case (#9) |
+| [`supported-release.json`](../fixtures/supported-release.json) | hand-authored | the same output as a released `4.0.0` — the gate's *accept* case, actually compared rather than waved through as uncomparable (#48) |
 | [`write-action-success.json`](../fixtures/write-action-success.json) | hand-authored | a write everything accepted: `actions` with one success and no devices |
 
 Recorded fixtures are byte-identical to what the binary printed, so
@@ -112,6 +113,7 @@ asserts the adapter assembled the CLI arguments the binary actually wants
 | `healthy` | the device, its capability rows and its battery, parsed by the real adapter |
 | `no-devices` | an empty list is "nothing connected", not an error |
 | `old-release` | the version gate rejects a released `3.1.0` (#9) |
+| `supported-release` | the version gate accepts a released `4.0.0` — the `healthy` fixture is a source build, whose version is never compared |
 | `malformed` | output the parser cannot read is refused, never half-read |
 | `hang` | a binary that never answers is killed by the call timeout ([ADR 0012](../decisions/0012-hardening-the-cli-boundary-and-the-supply-chain.md)) |
 | *(no binary)* | an empty `PATH` lands on the missing-binary screen |

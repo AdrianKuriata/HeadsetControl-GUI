@@ -278,15 +278,24 @@ src/
 - Desktop-only UI, min width 900 px, no mobile breakpoints. i18n (`vue-i18n`, pl + en)
   from the start — no hardcoded user-facing strings. SemVer, GPL-3.0.
 
-## Audeze Maxwell 2 Xbox (upstream work in flight)
+## Audeze Maxwell 2 and the upstream binary
 
-The Xbox dongle PID `0x4b28` (`3329:4b28`, confirmed via `lsusb`) is not yet in upstream
-HeadsetControl. Tracked in issue #18: patch prepared for `SUPPORTED_PRODUCT_IDS` in
-`lib/devices/audeze_maxwell2.hpp`; hardware testing and the PR to `Sapd/HeadsetControl`
-are still open, as is the `0x4b28 → 'xbox'` entry in `profiles/audeze-maxwell2.ts` (#17).
-Hardware testing requires the user (physical device) — see "When to ask the user".
+Both Maxwell 2 dongle PIDs are upstream and **released**: `0x4b29` (PS/PC, upstream #506)
+and `0x4b28` (Xbox — our PR `Sapd/HeadsetControl#540`, merged 2026-07-23), both shipping in
+**`headsetcontrol` 4.0.0** (2026-07-23). Issue #18 is closed; what remains of the profile
+work is the `0x4b28 → 'xbox'` entry in `profiles/audeze-maxwell2.ts` (#17).
 
-Maxwell 2 support at all (the PS/PC version, upstream #506) is newer than the last release
-`3.1.0`, so **no released `headsetcontrol` works with this headset** — everyone builds from
-source today. That is why `MIN_VERSION` in `backend/detect.rs` is a provisional `3.2.0` and
-the install screens teach a source build; correct both when upstream tags a release.
+`MIN_VERSION` in `backend/detect.rs` is therefore a real `4.0.0`, not a guess, and the
+install screens point at upstream's signed `.deb`/`.rpm`/AppImage with a source build kept
+behind them (#48). 4.0.0 is a C→C++20 rewrite, but the **CLI and the JSON output are
+unchanged** — the recorded fixtures in `docs/fixtures/` still describe it, so the adapter
+did not move. A binary whose version cannot be compared (`continuous-…`, a git build) is
+still accepted.
+
+4.0.0 also adds capabilities this app does not render yet — a parametric equalizer, USB
+vendor/product names, per-capability platform support. Nothing breaks on them: an unknown
+`CAP_*` is logged and skipped by `features/registry.ts`, so each one is a new file plus one
+registry entry whenever it is worth doing.
+
+Hardware-in-the-loop checks still require the user (physical device) — see "When to ask
+the user".

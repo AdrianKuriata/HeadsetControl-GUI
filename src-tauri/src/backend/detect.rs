@@ -253,7 +253,11 @@ mod tests {
         // What a `git clone` + `make install` reports. Still accepted after the
         // floor moved to a real release: a build from `main` is newer than any
         // tag, and refusing it would lock out the developers of this very app.
-        for version in ["continuous-53-gcfa125d", "continuous-52-gfe086cd-modified", "unreleased"] {
+        for version in [
+            "continuous-53-gcfa125d",
+            "continuous-52-gfe086cd-modified",
+            "unreleased",
+        ] {
             assert_eq!(
                 diagnose(Some(version), &[], &FakeAccess::all(Access::Granted)),
                 Detection::Ready,
