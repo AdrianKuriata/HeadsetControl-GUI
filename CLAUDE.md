@@ -59,15 +59,27 @@ obvious regressions — committed as `fix: ...` referencing no issue).
 All gates green locally — do not push red and let CI find it (wastes the user's CI minutes).
 - **`make ci`** — the full local gate (lint + coverage + E2E). Individual gates:
   `make fe-check` / `make rs-check`, or finer targets (`make help` lists them).
-- During bootstrap (before issues #1–#3 land) use whatever subset already exists.
+- E2E lives in `e2e/*.e2e.ts` (Playwright on the mock build). It boots the app
+  with a scripted scenario through two mock-only globals and asserts on
+  `data-part` attributes; no retries, no `waitForTimeout`
+  (`docs/architecture/testing.md`). Adding a flow = a new `*.e2e.ts` file.
+- `make smoke` (`smoke/run.mjs`) drives the **built** app under `tauri-driver`
+  with `smoke/fake-headsetcontrol` on PATH — the only automated test of the real
+  IPC path. Not part of `make ci` (it needs the drivers and a display); CI runs
+  it per PR. Adding a scenario = a fixture + a case in `smoke/run.mjs`.
 
 ### 5. Commit, push, PR
 - Conventional Commits, English, issue referenced: `feat(eq): draggable preset points (#16)`.
 - Push only your branch: `git push -u origin HC-<n>-<slug>`.
 - Open a PR to `main` with `Closes #<n>` in the body: summary, what/why, test evidence.
+- **Every PR targets `main`.** Never open one against another `HC-*` branch: merging the
+  parent deletes its branch, and GitHub closes the child **unmerged** instead of
+  retargeting it. That is how #41, #43 and #45 were lost — five issues' work survived
+  only on the last branch of the chain.
 - **Do not merge.** The user reviews and merges (squash). Move on to the next issue only
-  if it doesn't depend on the open PR; otherwise branch from the PR branch and note the
-  merge order in the PR titles.
+  if it doesn't depend on the open PR; otherwise branch from the PR branch, keep the PR
+  pointed at `main`, and note the merge order in the PR titles. After the parent merges,
+  rebase the child onto `main` rather than waiting.
 
 ### 6. After the task — documentation (MANDATORY, every task)
 Before opening the PR, run this docs checklist — a PR without it is not done:
@@ -117,6 +129,7 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 | Frontend gates | `make fe-check` (lint, typecheck, coverage) |
 | Rust gates | `make rs-check` (fmt, clippy, coverage) |
 | E2E (MockBackend) | `make fe-e2e` |
+| Smoke E2E (built app + fake CLI) | `make smoke` |
 | Auto-format all | `make format` |
 | Check branch commit messages | `make commitlint` |
 
@@ -160,8 +173,12 @@ The app is a GUI over the external `headsetcontrol` CLI. Two rules shape everyth
 1. **The UI is rendered from capabilities, not from device models.** `headsetcontrol
    --output json` reports what a headset supports; each capability maps to exactly one
    component via `src/features/registry.ts`. Adding a feature = new file in `features/`
-   + one registry entry, with no edits to existing files. An unknown capability is logged
-   and ignored, never a crash.
+   + one registry entry, with no edits to existing files. Every row takes the same props
+   (last written value + device readings) and emits one `change` event, which is how
+   `ReadyScreen` renders them without naming a capability; a row with no value shows
+   `—`, never "off" — the CLI cannot read most settings back
+   ([ADR 0014](docs/decisions/0014-feature-row-contract.md)). An unknown capability is
+   logged and ignored, never a crash.
 2. **Rust knows nothing about headset models** — only capabilities and values.
    Model-specific knowledge (EQ preset names, band frequencies, PID→platform mapping)
    lives in `src/profiles/`, resolved by `(vid, pid)` with a `GenericProfile` fallback.
@@ -188,14 +205,22 @@ and a 3 s polling fallback, used off Linux, when the monitor will not open, and 
 
 Frontend seams: `src/core/backend.ts` is the *only* place calling `invoke()`/`listen()`;
 `src/core/types.gen.ts` is generated from Rust via tauri-specta (single source of truth).
-Parameter writes are optimistic with rollback + toast on failure.
+The Pinia stores take the backend as an **argument** (never reaching for a singleton) and
+own the values, not the lifecycle: App.vue keeps the hotplug subscription and the refresh
+loop, `devices.ts` holds the list plus a selection kept as an id, `device.ts` holds the
+focused headset's readings and last-written values. Parameter writes are optimistic; a
+refusal rolls back — unless a newer write to the same capability already landed — and
+surfaces as a dismissible toast ([ADR 0013](docs/decisions/0013-stores-optimistic-writes.md)).
 
 The app is an explicit state machine, each state having its own screen:
 `checking-binary → missing-binary | bad-version | no-permissions(udev) | no-device | ready(device) | device-lost`.
 
 Platform accent colors (Xbox green / PlayStation blue / Nintendo red / neutral white
 fallback) are a **core mechanism**, driven by an optional `variants: { [pid]: platform }`
-map on `DeviceProfile` — never special-cased in UI components.
+map on `DeviceProfile` — never special-cased in UI components. `profiles/registry.ts`
+resolves `(vid, pid) → profile → platform` (`GENERIC_PROFILE` and `null` are the
+fallbacks) and `core/theme.ts` puts it on the root as `data-platform`; the accent
+variables are scoped to that attribute, so components only ever use `*-accent`.
 
 ### Target structure (PROJECT.md §3 — build toward this, don't invent parallel layouts)
 
@@ -224,10 +249,11 @@ src/
 │   ├── generic.ts
 │   └── audeze-maxwell2.ts
 ├── styles/index.css      # the only stylesheet: fonts + Tailwind + @theme tokens (main.ts imports it)
-├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout
+├── controls/             # generic H-components: HSlider, HOptions, HStepper, HReadout, HToast, HRow
 │                         #   no strings, no domain logic — labels/values arrive as props/slots
 ├── features/             # 1 capability = 1 component (SRP)
 │   ├── SidetoneRow.vue, ChatmixRow.vue, EqualizerSection.vue, …
+│   ├── contract.ts       # the props every row takes + the one event it emits
 │   └── registry.ts       # capability → component map (OCP)
 └── App.vue               # state machine + renders features from capabilities
 ```

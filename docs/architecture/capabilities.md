@@ -1,8 +1,8 @@
 # Capabilities — the business logic
 
-> **Status:** the adapter (#8) is built and reconciled below; the frontend half
-> lands with #11 (stores), #12 (feature registry), #15 (variants), #17 (Maxwell 2
-> profile) — reconcile this doc in those PRs.
+> **Status:** the adapter (#8), the stores (#11), the feature rows (#12) and the
+> profile registry with platform variants (#15) are built and reconciled below.
+> The first real profile lands with #17 (Maxwell 2) — reconcile this doc there.
 
 The whole product rests on one idea: **the UI is rendered from what the device
 says it can do** (`headsetcontrol --output json` → `capabilities` array), never
@@ -31,11 +31,21 @@ flowchart TD
 one new file in `features/` + one registry entry. **Zero edits to existing
 files** (OCP — this is the extension seam of the whole app).
 
-**`profiles/registry.ts`** — `(vid, pid)` → `DeviceProfile`. Profiles carry the
-*model-specific* knowledge Rust is forbidden to have: EQ preset names, band
-frequencies, PID→platform `variants` map. Unknown device → `GenericProfile`
-(everything still works, just without nice names). `DeviceProfile` is
-interface-segregated: a profile declares only what it overrides.
+`featureRows(capabilities)` returns the rows in the order the device reports
+them; a capability with no component is logged and skipped, and the battery is
+listed as rendered elsewhere (the device header) so it is not mistaken for one.
+Every row takes the same two props — the last value written and the device's
+readings — and emits one `change` event, which is what lets `ReadyScreen` render
+them in a single loop without naming a capability
+([ADR 0014](../decisions/0014-feature-row-contract.md)).
+
+**`profiles/registry.ts`** — `(vid, pid)` → `DeviceProfile`, keyed the way the CLI
+reports ids (`3329:4b28`). Profiles carry the *model-specific* knowledge Rust is
+forbidden to have: the PID→platform `variants` map today, EQ preset names and band
+frequencies with #16/#17. Unknown device → `GENERIC_PROFILE` (everything still
+works, just neutral and without nice names). `DeviceProfile` is
+interface-segregated: every field is optional, so a profile declares only what it
+overrides, and `platformFor()` answers `null` rather than guessing.
 
 ## Division of knowledge (the hard boundary)
 
@@ -69,9 +79,18 @@ write-only in the CLI, which is why the store holds the last written value
   default.
 - **Capability absent** (feature removed, device variant lacks it): the row
   simply doesn't render. No dead controls.
-- **Writes are optimistic**: store applies the value immediately, calls the
-  backend, rolls back + toasts on failure (see
-  [state-machine.md](state-machine.md)).
+- **Writes are optimistic**: `device.write(backend, capability, value)` applies
+  the value immediately, calls the backend, and on a refusal rolls back and
+  records the failure the toast shows. The rollback is skipped when a newer
+  write to the same capability has already landed, so a slow failure cannot
+  clobber what the user did next
+  ([ADR 0013](../decisions/0013-stores-optimistic-writes.md)).
+- **The store is the record of what was set**: with only battery and chatmix
+  readable, `device.params[capability]` is where a feature component reads the
+  current value from, and `device.readings` carries what the refresh loop read
+  back.
+- **A row with no value shows "unknown", never "off"**: the app has not read the
+  device, and claiming a setting is off would be a lie about hardware.
 - Values shown in UI come from validated domain types (`types.gen.ts`), never
   raw JSON — the adapter is an anti-corruption layer
   (see [overview.md](overview.md)).

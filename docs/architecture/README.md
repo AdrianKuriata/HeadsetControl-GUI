@@ -10,9 +10,9 @@ without reverse-engineering the code. Reference for facts, code for truth.
 |---|---|---|
 | [overview.md](overview.md) | System map: layers, seams, data flow | in progress (M0–M1) |
 | [state-machine.md](state-machine.md) | App state machine, one screen per state, startup detection, hotplug and value refresh | done (#5, #9, #10) |
-| [design-system.md](design-system.md) | UI layer: tokens, H-components, platform accents | tokens + controls done (#6); accent wiring in #15 |
-| [capabilities.md](capabilities.md) | Business logic: capability → UI, profiles, variants | adapter done (#8); frontend half in #11/#12/#17 |
-| [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | issues #3/#13/#14 |
+| [design-system.md](design-system.md) | UI layer: tokens, H-components, platform accents | done (#6, #11, #12, #15) |
+| [capabilities.md](capabilities.md) | Business logic: capability → UI, profiles, variants | adapter (#8), stores (#11), rows (#12), profile registry (#15) done; first profile in #17 |
+| [testing.md](testing.md) | Test pyramid, contract fixtures, MockBackend, coverage | done (#3, #13, #14); release checklist in #25 |
 | [security.md](security.md) | Tauri ACL, CSP, hardware-safety boundary | done (#1), updater in #22 |
 
 ## Rules for maintaining these docs

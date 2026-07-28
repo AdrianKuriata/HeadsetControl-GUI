@@ -1,33 +1,54 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
+import HToast from "./controls/HToast.vue";
 import type { Unsubscribe } from "./core/backend";
 import { createBackend } from "./core/create-backend";
-import { probe, readDeviceState, refreshDevices } from "./core/probe";
+import { probe, refreshDevices } from "./core/probe";
 import { startRefreshLoop } from "./core/refresh";
 import type { RefreshLoop } from "./core/refresh";
 import { INITIAL_STATE, transition } from "./core/state-machine";
 import type { AppEvent, AppState } from "./core/state-machine";
-import type { DeviceState } from "./core/types.gen";
+import { useDeviceStore } from "./core/stores/device";
+import { useDevicesStore } from "./core/stores/devices";
+import { applyPlatform } from "./core/theme";
+import type { ParamValue } from "./core/types.gen";
+import { platformFor } from "./profiles/registry";
 import { SCREENS, screenProps } from "./screens/registry";
 
 // The state machine lives here (PROJECT.md §3.3): this component owns the
 // current state and renders exactly one screen for it. Transitions are decided
-// in core/state-machine.ts and the state → screen mapping is data in
-// screens/registry.ts, so this file stays a shell.
+// in core/state-machine.ts, the state → screen mapping is data in
+// screens/registry.ts, and the values live in the stores — so this file stays a
+// shell that wires them together.
 const backend = createBackend();
+const devices = useDevicesStore();
+const device = useDeviceStore();
 const state = ref<AppState>(INITIAL_STATE);
-const readings = ref<DeviceState | null>(null);
+
+const { t } = useI18n({ useScope: "global" });
 
 const screen = computed(() => SCREENS[state.value.kind]);
-const props = computed(() => screenProps(state.value, readings.value));
+const props = computed(() =>
+  screenProps(state.value, { readings: device.readings, params: device.params }),
+);
 
 function dispatch(event: AppEvent): void {
+  if (event.kind === "probe-succeeded" || event.kind === "devices-changed") {
+    devices.apply(event.devices);
+  }
+
   state.value = transition(state.value, event);
 }
 
 async function runProbe(): Promise<void> {
   dispatch(await probe(backend));
+}
+
+/** A feature row asked for a value; which capability it was is its business. */
+function onWrite(capability: string, value: ParamValue): void {
+  void device.write(backend, capability, value);
 }
 
 async function retry(): Promise<void> {
@@ -46,29 +67,16 @@ async function onHotplug(): Promise<void> {
   }
 }
 
-// Live values are polled, not pushed: nothing tells the app that the battery
-// dropped a percent (#10). The device store takes this over in #11.
-async function refreshReadings(): Promise<void> {
-  const current = state.value;
-  if (current.kind !== "ready") {
-    return;
-  }
-
-  const values = await readDeviceState(backend, current.device.id);
-  const stillCurrent = state.value.kind === "ready" && state.value.device.id === current.device.id;
-
-  if (values && stillCurrent) {
-    readings.value = values;
-  }
-}
-
-// Readings belong to one headset: a different one — or none — starts over.
+// The device store and the theme both follow the screen: the values belong to
+// the headset the user is looking at, and so does the platform accent (#15).
 watch(
-  () => (state.value.kind === "ready" ? state.value.device.id : null),
-  (deviceId) => {
-    readings.value = null;
-    if (deviceId !== null) {
-      void refreshReadings();
+  () => (state.value.kind === "ready" ? state.value.device : null),
+  (connected) => {
+    device.focus(connected?.id ?? null);
+    applyPlatform(connected ? platformFor(connected) : null);
+
+    if (connected) {
+      void device.refresh(backend);
     }
   },
 );
@@ -78,7 +86,9 @@ let refresh: RefreshLoop | undefined;
 
 onMounted(async () => {
   unsubscribe = await backend.onDevicesChanged(() => void onHotplug());
-  refresh = startRefreshLoop(() => void refreshReadings());
+  // Live values are polled, not pushed: nothing tells the app that the battery
+  // dropped a percent (#10).
+  refresh = startRefreshLoop(() => void device.refresh(backend));
   await runProbe();
 });
 
@@ -92,6 +102,15 @@ onUnmounted(() => {
   <!-- The app shell from the mock: a centred, fixed-width column. Document-level
        styling (tokens, focus ring, fonts) lives in src/styles/index.css. -->
   <main class="mx-auto flex h-full max-w-[1000px] flex-col px-12">
-    <component :is="screen" v-bind="props" @retry="retry" />
+    <component :is="screen" v-bind="props" @retry="retry" @write="onWrite" />
+    <!-- A refused write is reported here and nowhere else: the screen keeps
+         showing the device, with the value already rolled back (#11). -->
+    <HToast
+      v-if="device.failure"
+      class="mb-6"
+      :dismiss-label="t('common.dismiss')"
+      @dismiss="device.dismiss()"
+      >{{ t("toast.writeFailed", { capability: device.failure.capability }) }}</HToast
+    >
   </main>
 </template>

@@ -5,6 +5,12 @@
 export const en = {
   common: {
     checkAgain: "Check again",
+    dismiss: "Dismiss",
+  },
+  toast: {
+    // The capability identifier is a technical constant, so it interpolates
+    // rather than being translated.
+    writeFailed: "The headset refused the change to {capability}.",
   },
   // Shared by the missing-binary and bad-version screens: both end in the same
   // place, a source build (see InstallInstructions.vue).
@@ -12,6 +18,56 @@ export const en = {
     dependencies: "Install the build dependencies",
     build: "Build and install headsetcontrol",
     udev: "The install step also adds the udev rules that let this app reach the headset.",
+  },
+  // One entry per capability component in `src/features/` (#12). The names are
+  // the user's words for a capability, never the CAP_* identifier.
+  features: {
+    // Shown wherever the app has no value for a capability: the CLI cannot read
+    // most of them back, so a row starts out unknown rather than lying "off".
+    unknown: "—",
+    sidetone: {
+      name: "Sidetone",
+      description: "Hearing your own voice",
+      off: "off",
+    },
+    chatmix: {
+      name: "Chatmix",
+      description: "Game / chat balance",
+      game: "Game",
+      chat: "Chat",
+    },
+    noiseFilter: {
+      name: "Noise filter",
+      description: "Microphone noise reduction",
+      off: "off",
+      low: "low",
+      high: "high",
+    },
+    voicePrompts: {
+      name: "Voice prompts",
+      on: "on",
+      off: "off",
+      active: "active",
+    },
+    lights: {
+      name: "Lights",
+      description: "Headset LEDs",
+      on: "on",
+      off: "off",
+    },
+    inactiveTime: {
+      name: "Auto power-off",
+      description: "After being idle",
+      never: "never",
+      minutes: "{count} min",
+      shorter: "Shorter",
+      longer: "Longer",
+    },
+    equalizer: {
+      name: "Equalizer",
+      description: "Built-in presets",
+      preset: "Preset {number}",
+    },
   },
   screens: {
     checking: {
@@ -62,11 +118,61 @@ export type Messages = DeepStrings<typeof en>;
 export const pl: Messages = {
   common: {
     checkAgain: "Sprawdź ponownie",
+    dismiss: "Zamknij",
+  },
+  toast: {
+    writeFailed: "Zestaw odrzucił zmianę {capability}.",
   },
   install: {
     dependencies: "Zainstaluj zależności do budowania",
     build: "Zbuduj i zainstaluj headsetcontrol",
     udev: "Instalacja dodaje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
+  },
+  features: {
+    unknown: "—",
+    sidetone: {
+      name: "Sidetone",
+      description: "Odsłuch własnego głosu",
+      off: "wył.",
+    },
+    chatmix: {
+      name: "Chatmix",
+      description: "Balans gra — czat",
+      game: "Gra",
+      chat: "Czat",
+    },
+    noiseFilter: {
+      name: "Filtr szumów",
+      description: "Redukcja szumów mikrofonu",
+      off: "wył.",
+      low: "niski",
+      high: "wysoki",
+    },
+    voicePrompts: {
+      name: "Komunikaty głosowe",
+      on: "wł.",
+      off: "wył.",
+      active: "aktywne",
+    },
+    lights: {
+      name: "Podświetlenie",
+      description: "Diody zestawu",
+      on: "wł.",
+      off: "wył.",
+    },
+    inactiveTime: {
+      name: "Auto-wyłączanie",
+      description: "Po bezczynności",
+      never: "nigdy",
+      minutes: "{count} min",
+      shorter: "Krócej",
+      longer: "Dłużej",
+    },
+    equalizer: {
+      name: "Korektor",
+      description: "Presety fabryczne",
+      preset: "Preset {number}",
+    },
   },
   screens: {
     checking: {

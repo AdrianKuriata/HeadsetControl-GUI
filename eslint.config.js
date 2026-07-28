@@ -78,7 +78,14 @@ export default defineConfig(
     },
   },
   {
-    files: ["*.config.{js,ts}", "*.config.*.{js,ts}", "scripts/**/*.{js,mjs}"],
+    files: [
+      "*.config.{js,ts}",
+      "*.config.*.{js,ts}",
+      "scripts/**/*.{js,mjs}",
+      // The smoke runner and the Playwright suite drive the app from outside it.
+      "smoke/**/*.mjs",
+      "e2e/**/*.ts",
+    ],
     languageOptions: {
       globals: globals.node,
     },

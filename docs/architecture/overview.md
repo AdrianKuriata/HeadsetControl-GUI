@@ -71,17 +71,27 @@ flowchart LR
 - `core/mock-backend.ts` — a scripted `HeadsetBackend` (devices, states, latency,
   write errors, hung calls, hotplug) selected with `VITE_BACKEND=mock`
   (`make dev-mock`); the E2E suite drives it through `window.__headsetDeckMock`.
-- `core/stores/` — Pinia: `devices.ts` (list, selection, hotplug),
-  `device.ts` (parameter state; writes are optimistic with rollback + toast).
+- `core/stores/` — Pinia: `devices.ts` (the connected list, and the selection
+  kept as an id so a replugged headset stays selected) and `device.ts` (the
+  values of the focused headset: readings from the refresh loop, the last value
+  written per capability, and the write failure the toast shows). Actions take
+  the `HeadsetBackend` as an argument; writes are optimistic with a
+  ticket-guarded rollback
+  ([ADR 0013](../decisions/0013-stores-optimistic-writes.md)).
 - `profiles/` — `DeviceProfile` resolved by `(vid, pid)` with a
-  `GenericProfile` fallback; holds EQ preset names, band frequencies, and the
-  optional `variants: { [pid]: platform }` map driving platform accent colors.
-- `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout);
-  features never use raw inputs.
+  `GENERIC_PROFILE` fallback; holds the optional `variants: { [pid]: platform }`
+  map driving the accent colour, and later EQ preset names and band frequencies.
+- `core/theme.ts` — puts the resolved platform on the root as `data-platform`;
+  the accent variables are scoped to it, which is why no component names a
+  platform.
+- `controls/` — generic H-components (HSlider, HOptions, HStepper, HReadout,
+  HToast, HRow — the three-column row layout); features never use raw inputs.
 - `i18n/` — vue-i18n (pl + en, en fallback); every user-facing string is a
   catalog key, enforced by the `vue/no-bare-strings-in-template` lint rule.
 - `features/` — one capability = one component; `features/registry.ts` maps
-  capability → component (OCP). Unknown capability: logged and ignored.
+  capability → component (OCP) and `features/contract.ts` fixes the props every
+  row takes and the one event it emits. Unknown capability: logged and ignored
+  ([ADR 0014](../decisions/0014-feature-row-contract.md)).
 
 ## App state machine
 

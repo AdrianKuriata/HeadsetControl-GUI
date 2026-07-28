@@ -6,6 +6,10 @@ import { MOCK_BACKEND_FLAG, createBackend, resetBackend } from "./core/create-ba
 import type { MockBackend } from "./core/mock-backend";
 import { MAXWELL2_XBOX } from "./core/mock-backend";
 import { REFRESH_INTERVAL_MS } from "./core/refresh";
+import { useDeviceStore } from "./core/stores/device";
+import { useDevicesStore } from "./core/stores/devices";
+import { PLATFORM_ATTRIBUTE } from "./core/theme";
+import { PROFILES, profileKey } from "./profiles/registry";
 import { mountWithI18n } from "./test-support";
 
 /** The backend the app will pick up, scripted before it boots. */
@@ -214,6 +218,91 @@ describe("App", () => {
     await flushPromises();
 
     expect(reads).not.toHaveBeenCalled();
+  });
+
+  it("themes the app for the platform the connected headset is a variant for", async () => {
+    PROFILES[profileKey(MAXWELL2_XBOX)] = { variants: { [MAXWELL2_XBOX.productId]: "ps" } };
+    const backend = scriptedBackend();
+
+    try {
+      const app = mountApp();
+      await flushPromises();
+      expect(document.documentElement.getAttribute(PLATFORM_ATTRIBUTE)).toBe("ps");
+
+      // Unplugged: the accent goes back to neutral rather than lingering.
+      backend.setDevices([]);
+      await flushPromises();
+      expect(document.documentElement.hasAttribute(PLATFORM_ATTRIBUTE)).toBe(false);
+
+      app.unmount();
+    } finally {
+      delete PROFILES[profileKey(MAXWELL2_XBOX)];
+      document.documentElement.removeAttribute(PLATFORM_ATTRIBUTE);
+    }
+  });
+
+  it("stays neutral for a headset no profile knows", async () => {
+    scriptedBackend();
+
+    const app = mountApp();
+    await flushPromises();
+
+    expect(document.documentElement.hasAttribute(PLATFORM_ATTRIBUTE)).toBe(false);
+    app.unmount();
+  });
+
+  it("keeps the devices store in step with what is connected", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    expect(useDevicesStore().selected).toEqual(MAXWELL2_XBOX);
+
+    backend.setDevices([]);
+    await flushPromises();
+    expect(useDevicesStore().selected).toBeUndefined();
+
+    app.unmount();
+  });
+
+  it("writes what a feature row asks for", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    // The sidetone row of the connected device, moved by the user.
+    await app.get('[data-capability="CAP_SIDETONE"] input').setValue(64);
+    await flushPromises();
+
+    expect(backend.writes).toEqual([
+      { deviceId: MAXWELL2_XBOX.id, param: "CAP_SIDETONE", value: { kind: "int", value: 64 } },
+    ]);
+    expect(useDeviceStore().params).toEqual({ CAP_SIDETONE: { kind: "int", value: 64 } });
+  });
+
+  it("reports a refused write in a toast, with the value already rolled back", async () => {
+    const backend = scriptedBackend();
+    const app = mountApp();
+    await flushPromises();
+
+    backend.fail("setParam", { kind: "error", error: { kind: "failed", message: "asleep" } });
+    await app.get('[data-capability="CAP_SIDETONE"] input').setValue(96);
+    await flushPromises();
+
+    expect(app.get('[data-part="toast"]').text()).toContain("CAP_SIDETONE");
+    expect(useDeviceStore().params).toEqual({});
+
+    await app.get('[data-part="dismiss"]').trigger("click");
+    expect(app.find('[data-part="toast"]').exists()).toBe(false);
+  });
+
+  it("shows no toast while writes are going through", async () => {
+    scriptedBackend();
+
+    const app = mountApp();
+    await flushPromises();
+
+    expect(app.find('[data-part="toast"]').exists()).toBe(false);
   });
 
   it("stops listening for hotplug once unmounted", async () => {

@@ -2,12 +2,25 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
-import type { Device, DeviceState } from "../core/types.gen";
+import type { Device, DeviceState, ParamValue } from "../core/types.gen";
+import { featureRows } from "../features/registry";
+import { platformFor } from "../profiles/registry";
+import type { Platform } from "../profiles/types";
 
-// One placeholder row per reported capability. The capability → component map
-// (#12) replaces this; rendering the raw identifier is what keeps an unknown
-// capability harmless in the meantime. Device name/product and the capability
-// identifiers are data, not translatable copy.
+// Platform names are proper nouns, like the device's own name — they are not
+// translated. Which platform a device *is* comes from its profile (#15); the
+// accent colour follows from the attribute the core sets, never from here.
+const PLATFORM_NAMES: Record<Platform, string> = {
+  xbox: "Xbox",
+  ps: "PlayStation",
+  nintendo: "Nintendo",
+  pc: "PC",
+};
+
+// The screen is rendered from what the device says it can do: the header, then
+// one row per capability, in the order reported (PROJECT.md §3.4). It knows no
+// capability by name — `features/registry.ts` does the mapping, so a new
+// feature never touches this file.
 const { t } = useI18n({ useScope: "global" });
 
 const props = defineProps<{
@@ -20,11 +33,16 @@ const props = defineProps<{
    * hands a component both.
    */
   readings?: DeviceState | null | undefined;
+  /** The last value written per capability (#11). */
+  params?: Record<string, ParamValue> | undefined;
 }>();
 
-// A first readout of the polled values, in the same placeholder idiom as the
-// capability list above: the real battery row arrives with the feature
-// components (#12), fed from the device store (#11).
+defineEmits<{ write: [capability: string, value: ParamValue] }>();
+
+const rows = computed(() => featureRows(props.device.capabilities));
+
+const platform = computed(() => platformFor(props.device));
+
 const battery = computed(() => {
   const reading = props.readings?.battery;
 
@@ -38,18 +56,34 @@ const battery = computed(() => {
 </script>
 
 <template>
-  <section class="flex h-full flex-col justify-center gap-3 py-10">
-    <h1 class="text-[15px] font-semibold tracking-[0.22em] uppercase">{{ device.name }}</h1>
-    <p class="max-w-[62ch] text-mid">{{ device.product }}</p>
-    <dl class="flex gap-3 font-mono text-[11.5px] tracking-[0.08em] uppercase">
-      <dt class="text-low">{{ t("screens.ready.battery") }}</dt>
-      <dd class="text-mid" data-part="battery">{{ battery }}</dd>
-    </dl>
-    <h2 class="font-mono text-[10px] tracking-[0.24em] text-low uppercase">
-      {{ t("screens.ready.capabilities") }}
-    </h2>
-    <ul class="flex flex-col gap-1 font-mono text-[11.5px] tracking-[0.08em] text-mid">
-      <li v-for="capability in device.capabilities" :key="capability">{{ capability }}</li>
-    </ul>
+  <section class="flex h-full flex-col gap-3 py-10">
+    <header class="flex flex-col gap-3">
+      <div class="flex items-center gap-4">
+        <h1 class="text-[15px] font-semibold tracking-[0.22em] uppercase">{{ device.name }}</h1>
+        <span
+          v-if="platform"
+          data-part="platform"
+          class="border border-accent px-2 py-0.5 font-mono text-[10px] tracking-[0.24em] text-accent uppercase"
+          >{{ PLATFORM_NAMES[platform] }}</span
+        >
+      </div>
+      <p class="max-w-[62ch] text-mid">{{ device.product }}</p>
+      <dl class="flex gap-3 font-mono text-[11.5px] tracking-[0.08em] uppercase">
+        <dt class="text-low">{{ t("screens.ready.battery") }}</dt>
+        <dd class="text-mid" data-part="battery">{{ battery }}</dd>
+      </dl>
+    </header>
+
+    <div class="mt-6 flex flex-col">
+      <component
+        :is="row.component"
+        v-for="row in rows"
+        :key="row.capability"
+        :data-capability="row.capability"
+        :value="params?.[row.capability]"
+        :readings="readings"
+        @change="$emit('write', row.capability, $event)"
+      />
+    </div>
   </section>
 </template>
