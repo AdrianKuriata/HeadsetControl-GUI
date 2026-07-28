@@ -191,7 +191,7 @@ async function run(testCase) {
 
   try {
     await waitForPort(PORT);
-    app = await App.start();
+    app = await waitFor(() => App.start().catch(() => undefined), "a WebDriver session");
     await testCase.check(app, { log });
   } finally {
     await app?.stop();
@@ -348,6 +348,11 @@ function reachable(port) {
   });
 }
 
+/**
+ * The port being connectable is necessary but not sufficient: `tauri-driver`
+ * binds it before it can serve, so the first `POST /session` can still be reset.
+ * This is the cheap half — creating the session is retried on top of it.
+ */
 function waitForPort(port) {
   return waitFor(() => reachable(port), `tauri-driver on port ${port}`);
 }
