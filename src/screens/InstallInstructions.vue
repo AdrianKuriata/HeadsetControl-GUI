@@ -8,6 +8,10 @@ import { useI18n } from "vue-i18n";
 // Since 4.0.0 upstream ships signed packages for every format below, so that is
 // the route offered first — until then no release worked with a Maxwell 2 at all
 // and a source build was the only honest instruction.
+// Shown as selectable text, never as an `<a href>`. The capability set carries no
+// `opener` permission and no navigation allowlist, so an anchor would navigate the
+// app window itself out of the bundle — the same reason the udev rules on the
+// no-permissions screen are copyable text rather than a link.
 const RELEASES = "https://github.com/Sapd/HeadsetControl/releases/latest";
 
 // Every release asset has a detached signature next to it, published under
@@ -49,13 +53,9 @@ const { t } = useI18n({ useScope: "global" });
     <h2 class="font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
       {{ t("install.packages") }}
     </h2>
-    <p class="max-w-[62ch] text-mid">
-      <a
-        :href="RELEASES"
-        class="border-b border-hair text-ink transition-colors hover:border-b-accent"
-        >{{ RELEASES }}</a
-      >
-    </p>
+    <pre
+      class="overflow-x-auto border border-hair p-3 font-mono text-[11.5px] text-mid select-text"
+    ><code>{{ RELEASES }}</code></pre>
 
     <h3 class="mt-1 font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase">
       {{ t("install.verify") }}
