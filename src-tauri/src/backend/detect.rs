@@ -13,14 +13,18 @@ use super::Device;
 
 /// The oldest `headsetcontrol` this app accepts.
 ///
-/// **Provisional.** Audeze Maxwell 2 support landed upstream after `3.1.0`
-/// (Sapd/HeadsetControl#506) and has not been released yet, so this names the
-/// release that is expected to carry it. When upstream tags it — tracked
-/// alongside the Xbox PID in issue #18 / Sapd/HeadsetControl#540 — this constant
-/// is the one line to correct.
+/// `4.0.0` (2026-07-23) is the first release that supports the Audeze Maxwell 2
+/// at all: the PlayStation/PC dongle arrived in Sapd/HeadsetControl#506 and the
+/// Xbox one in #540, both after `3.1.0` and both in this release. Nothing older
+/// can talk to the hardware this app was written for, so nothing older is worth
+/// letting the user believe will work.
+///
+/// It bounds the *floor*, not the format: the release is a C→C++20 rewrite, but
+/// upstream kept the command-line interface and the JSON output identical, which
+/// is why the recorded fixtures still describe it.
 const MIN_VERSION: Version = Version {
-    major: 3,
-    minor: 2,
+    major: 4,
+    minor: 0,
     patch: 0,
 };
 
@@ -97,10 +101,11 @@ pub fn diagnose(
 
 /// A version this app can work with?
 ///
-/// A build that does not name a release — `continuous-52-gfe086cd`, what
+/// A build that does not name a release — `continuous-53-gcfa125d`, what
 /// `make install` from a git checkout produces — is **accepted**: it cannot be
-/// compared, and refusing it would lock out exactly the users who build the
-/// unreleased version this app needs.
+/// compared, and a checkout of `main` is by definition newer than the tag this
+/// gate names, not older. Refusing it would lock out everyone tracking upstream,
+/// this app's own developers first.
 fn is_supported(version: Option<&str>) -> bool {
     match version.map(Version::parse) {
         Some(Some(found)) => found >= MIN_VERSION,
@@ -205,7 +210,7 @@ mod tests {
 
     #[test]
     fn accepts_the_minimum_version_and_anything_newer() {
-        for version in ["3.2.0", "3.2.1", "4.0.0", "v3.2.0", " 3.2.0 "] {
+        for version in ["4.0.0", "4.0.1", "4.1.0", "5.0.0", "v4.0.0", " 4.0.0 "] {
             assert_eq!(
                 diagnose(Some(version), &[], &FakeAccess::all(Access::Granted)),
                 Detection::Ready,
@@ -216,12 +221,12 @@ mod tests {
 
     #[test]
     fn rejects_a_release_older_than_the_minimum() {
-        for version in ["3.1.0", "2.6", "3", "0.0.1"] {
+        for version in ["3.1.0", "3.2.0", "2.6", "3", "0.0.1"] {
             assert_eq!(
                 diagnose(Some(version), &[], &FakeAccess::all(Access::Granted)),
                 Detection::BadVersion {
                     found: Some(version.to_owned()),
-                    required: "3.2.0".to_owned(),
+                    required: "4.0.0".to_owned(),
                 },
                 "{version} should be rejected"
             );
@@ -231,23 +236,28 @@ mod tests {
     #[test]
     fn ranks_a_pre_release_as_its_release() {
         assert_eq!(
-            diagnose(Some("3.2.0-rc1"), &[], &FakeAccess::all(Access::Granted)),
+            diagnose(Some("4.0.0-rc1"), &[], &FakeAccess::all(Access::Granted)),
             Detection::Ready
         );
         assert_eq!(
             diagnose(Some("3.1.0+build7"), &[], &FakeAccess::all(Access::Granted)),
             Detection::BadVersion {
                 found: Some("3.1.0+build7".to_owned()),
-                required: "3.2.0".to_owned(),
+                required: "4.0.0".to_owned(),
             }
         );
     }
 
     #[test]
     fn accepts_a_development_build_it_cannot_compare() {
-        // What a `git clone` + `make install` reports — and, until upstream
-        // releases Maxwell 2 support, the only kind of build that works.
-        for version in ["continuous-52-gfe086cd-modified", "unreleased"] {
+        // What a `git clone` + `make install` reports. Still accepted after the
+        // floor moved to a real release: a build from `main` is newer than any
+        // tag, and refusing it would lock out the developers of this very app.
+        for version in [
+            "continuous-53-gcfa125d",
+            "continuous-52-gfe086cd-modified",
+            "unreleased",
+        ] {
             assert_eq!(
                 diagnose(Some(version), &[], &FakeAccess::all(Access::Granted)),
                 Detection::Ready,
@@ -262,14 +272,14 @@ mod tests {
             diagnose(None, &maxwell(), &FakeAccess::all(Access::Granted)),
             Detection::BadVersion {
                 found: None,
-                required: "3.2.0".to_owned(),
+                required: "4.0.0".to_owned(),
             }
         );
     }
 
     #[test]
     fn prints_the_required_version_the_way_the_screen_shows_it() {
-        assert_eq!(required_version(), "3.2.0");
+        assert_eq!(required_version(), "4.0.0");
     }
 
     // ── permissions ─────────────────────────────────────────────────────────
@@ -277,7 +287,7 @@ mod tests {
     #[test]
     fn blames_udev_only_when_every_listed_device_refuses_to_open() {
         assert_eq!(
-            diagnose(Some("3.2.0"), &maxwell(), &FakeAccess::all(Access::Denied)),
+            diagnose(Some("4.0.0"), &maxwell(), &FakeAccess::all(Access::Denied)),
             Detection::NoPermissions
         );
     }
@@ -290,13 +300,13 @@ mod tests {
             ((0xf00b, 0xa00c), Access::Granted),
         ]);
 
-        assert_eq!(diagnose(Some("3.2.0"), &devices, &access), Detection::Ready);
+        assert_eq!(diagnose(Some("4.0.0"), &devices, &access), Detection::Ready);
     }
 
     #[test]
     fn does_not_blame_udev_for_a_device_the_os_says_nothing_about() {
         assert_eq!(
-            diagnose(Some("3.2.0"), &maxwell(), &FakeAccess::all(Access::Unknown)),
+            diagnose(Some("4.0.0"), &maxwell(), &FakeAccess::all(Access::Unknown)),
             Detection::Ready
         );
     }
@@ -306,7 +316,7 @@ mod tests {
         // Nothing to open is `no-device`, and that is the device list's verdict
         // to give, not this one's.
         assert_eq!(
-            diagnose(Some("3.2.0"), &[], &FakeAccess::all(Access::Denied)),
+            diagnose(Some("4.0.0"), &[], &FakeAccess::all(Access::Denied)),
             Detection::Ready
         );
     }
@@ -319,7 +329,7 @@ mod tests {
             diagnose(Some("3.1.0"), &maxwell(), &FakeAccess::all(Access::Denied)),
             Detection::BadVersion {
                 found: Some("3.1.0".to_owned()),
-                required: "3.2.0".to_owned(),
+                required: "4.0.0".to_owned(),
             }
         );
     }

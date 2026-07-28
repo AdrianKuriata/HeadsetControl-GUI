@@ -23,23 +23,23 @@ describe("probe", () => {
 
   it("reports a binary that is too old, with both versions", async () => {
     const backend = new MockBackend({
-      detection: { kind: "bad_version", found: "3.1.0", required: "3.2.0" },
+      detection: { kind: "bad_version", found: "3.1.0", required: "4.0.0" },
     });
 
     await expect(probe(backend)).resolves.toEqual({
       kind: "probe-failed",
-      failure: { kind: "bad-version", found: "3.1.0", required: "3.2.0" },
+      failure: { kind: "bad-version", found: "3.1.0", required: "4.0.0" },
     });
   });
 
   it("reports an incompatible binary whose version is unknown", async () => {
     const backend = new MockBackend({
-      detection: { kind: "bad_version", found: null, required: "3.2.0" },
+      detection: { kind: "bad_version", found: null, required: "4.0.0" },
     });
 
     await expect(probe(backend)).resolves.toEqual({
       kind: "probe-failed",
-      failure: { kind: "bad-version", found: null, required: "3.2.0" },
+      failure: { kind: "bad-version", found: null, required: "4.0.0" },
     });
   });
 

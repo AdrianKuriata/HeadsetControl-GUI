@@ -50,27 +50,47 @@ describe("screens that offer a retry", () => {
 
   it("names no version on the bad-version screen when the binary named none", () => {
     const { wrapper } = mountWithI18n(BadVersionScreen, {
-      props: { found: null, required: "3.2.0" },
+      props: { found: null, required: "4.0.0" },
     });
 
     expect(wrapper.get("[data-part='body']").text()).toContain("could not be read");
-    expect(wrapper.text()).toContain("3.2.0");
+    expect(wrapper.text()).toContain("4.0.0");
   });
 
-  it("offers a source build on both screens that have no usable binary", () => {
+  it("offers the signed packages first on both screens that have no usable binary", () => {
     for (const screen of [MissingBinaryScreen, BadVersionScreen]) {
       const { wrapper } = mountWithI18n(screen, {
-        props: { found: "2.5.0", required: "3.2.0" },
+        props: { found: "2.5.0", required: "4.0.0" },
       });
       const instructions = wrapper.get("[data-part='install-instructions']").text();
 
-      // One dependency line per supported distribution, then upstream's build.
-      expect(instructions).toContain("sudo apt install");
-      expect(instructions).toContain("sudo dnf install");
-      expect(instructions).toContain("sudo pacman -S");
-      expect(instructions).toContain("git clone https://github.com/Sapd/HeadsetControl");
-      expect(instructions).toContain("sudo make install");
+      // Where the packages come from, how to check the signature, then one
+      // install command per format upstream ships.
+      expect(instructions).toContain("https://github.com/Sapd/HeadsetControl/releases/latest");
+      expect(instructions).toContain("gpg --verify");
+      expect(instructions).toContain("sudo apt install ./headsetcontrol_");
+      expect(instructions).toContain("sudo dnf install ./headsetcontrol-");
+      expect(instructions).toContain("chmod +x headsetcontrol-x86_64.AppImage");
     }
+  });
+
+  it("keeps the source build on offer, for distributions upstream packages nothing for", () => {
+    const { wrapper } = mountWithI18n(MissingBinaryScreen);
+    const instructions = wrapper.get("[data-part='install-instructions']").text();
+
+    expect(instructions).toContain("sudo apt install build-essential");
+    expect(instructions).toContain("sudo dnf install g++");
+    expect(instructions).toContain("sudo pacman -S base-devel");
+    expect(instructions).toContain("git clone https://github.com/Sapd/HeadsetControl");
+    expect(instructions).toContain("sudo make install");
+  });
+
+  it("names no version anywhere in the install commands", () => {
+    // A pinned version rots at the next upstream tag: the release page always
+    // points at the newest, and the globs keep matching whatever was downloaded.
+    const { wrapper } = mountWithI18n(MissingBinaryScreen);
+
+    expect(wrapper.get("[data-part='install-instructions']").text()).not.toMatch(/\d+\.\d+\.\d+/);
   });
 
   it("emits retry from the no-permissions screen, showing the udev rules to copy", async () => {

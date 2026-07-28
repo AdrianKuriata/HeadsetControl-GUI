@@ -330,6 +330,7 @@ przed wysłaniem PR.
 | 2026-07 | Licencja GPL-3.0; projekt open source |
 | 2026-07 | Maxwell 2 Xbox: PID `0x4b28` potwierdzony na sprzęcie; patch upstream przygotowany |
 | 2026-07 | Minimalna wersja `headsetcontrol`: **3.2.0** (prowizorycznie — pierwsze wydanie, które ma nieść wsparcie Maxwell 2; dziś nie istnieje). Konsekwencja: wydane `3.1.0` trafia na ekran `bad-version`, a ekrany instalacji prowadzą do budowania ze źródeł. Buildy deweloperskie (`continuous-…`) są akceptowane, bo nie da się ich porównać. Do korekty, gdy upstream wyda tag — [ADR 0010](decisions/0010-binary-detection-and-permission-diagnosis.md) |
+| 2026-07-28 | `headsetcontrol` **4.0.0** wydane (2026-07-23) — pierwsze wydanie ze wsparciem Maxwell 2, w tym oba PID-y dongla (`0x4b29` PS/PC, `0x4b28` Xbox; nasz upstreamowy PR [#540](https://github.com/Sapd/HeadsetControl/pull/540) zmergowany). Minimalna wersja przestaje być prowizoryczna: `MIN_VERSION` = **4.0.0**. CLI i format JSON bez zmian mimo przepisu C→C++20, więc nagrane fixtures zostają. Ekrany instalacji prowadzą teraz do **podpisanych pakietów** (`.deb`/`.rpm`/AppImage) z linkiem do `releases/latest` i weryfikacją `gpg --verify`; budowanie ze źródeł zostaje jako fallback (Arch nie ma pakietu upstream). Buildy `continuous-…` nadal akceptowane — [ADR 0010](decisions/0010-binary-detection-and-permission-diagnosis.md) |
 | — | Nazwa aplikacji: **do ustalenia** („Headset Deck" = robocza) |
 
 ## 11. Zasada nadrzędna
