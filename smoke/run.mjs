@@ -91,6 +91,15 @@ const CASES = [
     check: (app) => app.expectText("h1", "headsetcontrol not found"),
   },
   {
+    // The same as above, except the fake leaves a child holding the pipes the
+    // adapter reads. The kill reaches the process it spawned and no further, so
+    // this is the case that proves the timeout bounds the *call* and not just
+    // the child (issue #50).
+    name: "a binary that hangs behind a child of its own is still bounded",
+    scenario: "hang-forking",
+    check: (app) => app.expectText("h1", "headsetcontrol not found"),
+  },
+  {
     name: "no binary at all lands on the missing-binary screen",
     scenario: null,
     check: (app) => app.expectText("h1", "headsetcontrol not found"),
