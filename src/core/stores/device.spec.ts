@@ -6,9 +6,37 @@ import type { ParamValue } from "../types.gen";
 import { useDeviceStore } from "./device";
 
 const SIDETONE = "CAP_SIDETONE";
+const NOISE_FILTER = "CAP_NOISE_FILTER";
 const LOUD: ParamValue = { kind: "int", value: 96 };
+const MID: ParamValue = { kind: "int", value: 40 };
 const QUIET: ParamValue = { kind: "int", value: 12 };
+const ON: ParamValue = { kind: "bool", value: true };
 const OTHER_HEADSET = "1038:12aa";
+
+/**
+ * A backend whose *first* write never finishes until it is let go, so a test can
+ * pile more writes on top of a call that is still in flight — no timers, and no
+ * dependence on how many microtasks the store happens to await.
+ */
+function holding() {
+  const backend = new MockBackend();
+  const sent: ParamValue[] = [];
+  let held: (() => void) | undefined;
+
+  backend.setParam = (_deviceId, _param, value) => {
+    sent.push(value);
+
+    if (sent.length > 1) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      held = resolve;
+    });
+  };
+
+  return { backend, sent, release: () => held?.() };
+}
 
 /** How the mock reports a device that refused. */
 const REFUSED = {
@@ -172,6 +200,56 @@ describe("the device store", () => {
 
       expect(store.failure).toBeNull();
       expect(store.params).toEqual({});
+    });
+
+    it("collapses a burst to one more call, carrying the newest value", async () => {
+      const store = focused();
+      const { backend, sent, release } = holding();
+
+      // What a drag looks like: the first value goes on the wire, and every
+      // value after it arrives while that call is still running. Each one costs
+      // ~3 s on the reference headset, so they must not queue up (#52).
+      const first = store.write(backend, SIDETONE, QUIET);
+      void store.write(backend, SIDETONE, MID);
+      void store.write(backend, SIDETONE, LOUD);
+
+      expect(sent).toEqual([QUIET]);
+      // The screen is already where the finger is; only the wire is throttled.
+      expect(store.params[SIDETONE]).toEqual(LOUD);
+
+      release();
+      await first;
+
+      expect(sent).toEqual([QUIET, LOUD]);
+    });
+
+    it("does not make one capability wait behind another", async () => {
+      const store = focused();
+      const { backend, sent, release } = holding();
+
+      const first = store.write(backend, SIDETONE, LOUD);
+      await store.write(backend, NOISE_FILTER, ON);
+
+      // Different capabilities are different calls; only the same one collapses.
+      expect(sent).toEqual([LOUD, ON]);
+
+      release();
+      await first;
+    });
+
+    it("drops what was queued when the user switches headsets", async () => {
+      const store = focused();
+      const { backend, sent, release } = holding();
+
+      const first = store.write(backend, SIDETONE, QUIET);
+      void store.write(backend, SIDETONE, LOUD);
+      store.focus(OTHER_HEADSET);
+
+      release();
+      await first;
+
+      // The queued value was meant for a headset the user has left.
+      expect(sent).toEqual([QUIET]);
     });
 
     it("lets an unexpected error through", async () => {
