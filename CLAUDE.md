@@ -70,6 +70,13 @@ All gates green locally — do not push red and let CI find it (wastes the user'
 
 ### 5. Commit, push, PR
 - Conventional Commits, English, issue referenced: `feat(eq): draggable preset points (#16)`.
+- **Keep it short.** Subject plus 3–6 lines of body. Keep the measurement and the one
+  non-obvious caveat; drop the recap, the scene-setting and the exhaustive framing. No
+  markdown headings or tables in a commit message. Same for PR bodies: prose, not a
+  report. Same for code comments — one or two lines unless the reason really is subtle.
+- **No AI attribution anywhere** — no `Co-Authored-By` trailer, no mention of AI in
+  commits, PR bodies, code comments or issues. The owner is the author of record for
+  everything landing here and upstream, and long essayistic prose reads as machine-written.
 - Push only your branch: `git push -u origin HC-<n>-<slug>`.
 - Open a PR to `main` with `Closes #<n>` in the body: summary, what/why, test evidence.
 - **Every PR targets `main`.** Never open one against another `HC-*` branch: merging the
