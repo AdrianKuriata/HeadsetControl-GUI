@@ -45,7 +45,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           rust-components: rustfmt, clippy, llvm-tools-preview
-      - uses: taiki-e/install-action@3d7d7cd5ac7f994c1892ae0c06165095b9139094 # v2
+      - uses: taiki-e/install-action@065d6a08a14e61e89fb0a4c10eecdbdef39c7d8e # v2
         with:
           tool: cargo-llvm-cov
       # rustfmt + clippy + the coverage gate.
@@ -75,7 +75,7 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
-      - uses: taiki-e/install-action@3d7d7cd5ac7f994c1892ae0c06165095b9139094 # v2
+      - uses: taiki-e/install-action@065d6a08a14e61e89fb0a4c10eecdbdef39c7d8e # v2
         with:
           tool: cargo-audit
       - run: npm ci
@@ -96,7 +96,7 @@ jobs:
       - run: npm ci
       # The browser is a ~150 MB download; caching it keys on the lockfile, so a
       # Playwright bump fetches a fresh one and nothing else does.
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -105,7 +105,7 @@ jobs:
       # Builds the app against MockBackend and drives it — no Tauri shell, no
       # hardware. The real IPC path is the smoke suite (#14).
       - run: make fe-e2e
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: playwright-report
@@ -124,7 +124,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends webkit2gtk-driver xvfb
       - name: Cache tauri-driver
         id: driver
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cargo/bin/tauri-driver
           key: tauri-driver-${{ runner.os }}
