@@ -77,7 +77,9 @@ flowchart LR
   written per capability, and the write failure the toast shows). Actions take
   the `HeadsetBackend` as an argument; writes are optimistic with a
   ticket-guarded rollback
-  ([ADR 0013](../decisions/0013-stores-optimistic-writes.md)).
+  ([ADR 0013](../decisions/0013-stores-optimistic-writes.md)), and coalesced per
+  capability so a drag costs two calls rather than one per pixel
+  ([ADR 0015](../decisions/0015-coalesce-writes-per-capability.md)).
 - `profiles/` — `DeviceProfile` resolved by `(vid, pid)` with a
   `GENERIC_PROFILE` fallback; holds the optional `variants: { [pid]: platform }`
   map driving the accent colour, and later EQ preset names and band frequencies.

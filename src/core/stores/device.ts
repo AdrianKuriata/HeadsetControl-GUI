@@ -12,6 +12,18 @@ export interface WriteFailure {
   reason: BackendError;
 }
 
+/** One write, with everything needed to send it later rather than now. */
+interface Attempt {
+  backend: HeadsetBackend;
+  deviceId: string;
+  capability: string;
+  value: ParamValue;
+  /** Identifies this write among the ones to the same capability. */
+  ticket: number;
+  /** What to restore if the device refuses and nothing newer has landed. */
+  previous: ParamValue | undefined;
+}
+
 /**
  * The values of the headset on screen: what was read back, what was written,
  * and what the last write did wrong.
@@ -40,6 +52,18 @@ export const useDeviceStore = defineStore("device", () => {
   const newest = new Map<string, number>();
   let writes = 0;
 
+  // At most one call on the wire per capability, and at most one value waiting
+  // behind it — a newer one replaces what is queued rather than joining a queue.
+  //
+  // Without this a drag is unusable: the slider emits a value per pixel and a
+  // single `headsetcontrol` invocation costs ~2.9 s on the reference headset,
+  // which the runner serialises. Tens of writes then take minutes to drain and
+  // the device replays every intermediate position of the drag long after the
+  // user let go (#52). The optimistic update below is unaffected, so the readout
+  // still follows the finger; only what reaches the device is thinned out.
+  const sending = new Set<string>();
+  const queued = new Map<string, Attempt>();
+
   /** Point the store at a headset. Another one (or none) starts from nothing. */
   function focus(id: string | null): void {
     if (id === deviceId.value) {
@@ -51,6 +75,8 @@ export const useDeviceStore = defineStore("device", () => {
     params.value = {};
     failure.value = null;
     newest.clear();
+    // Anything still waiting was meant for the headset the user just left.
+    queued.clear();
   }
 
   /**
@@ -76,6 +102,10 @@ export const useDeviceStore = defineStore("device", () => {
    * device undoes it (PROJECT.md §3.3). The rollback is guarded — if something
    * has been written to the same capability since, a slow failure must not
    * clobber the newer value; it only reports.
+   *
+   * Resolves once the device has been told — including whatever replaced this
+   * value while the call was on the wire, since that write has no call of its
+   * own to await.
    */
   async function write(
     backend: HeadsetBackend,
@@ -93,6 +123,40 @@ export const useDeviceStore = defineStore("device", () => {
     params.value[capability] = value;
     newest.set(capability, ticket);
 
+    const attempt: Attempt = { backend, deviceId: id, capability, value, ticket, previous };
+
+    // Someone is already talking to the device about this capability. Leave the
+    // value behind them — replacing anything that was waiting — and let their
+    // call carry it once it is free.
+    if (sending.has(capability)) {
+      queued.set(capability, attempt);
+      return;
+    }
+
+    sending.add(capability);
+
+    try {
+      let next: Attempt | undefined = attempt;
+
+      while (next) {
+        await send(next);
+        next = queued.get(capability);
+        queued.delete(capability);
+      }
+    } finally {
+      sending.delete(capability);
+    }
+  }
+
+  /** One invocation, and what its refusal means for what is on screen. */
+  async function send({
+    backend,
+    deviceId: id,
+    capability,
+    value,
+    ticket,
+    previous,
+  }: Attempt): Promise<void> {
     try {
       await backend.setParam(id, capability, value);
     } catch (error) {
