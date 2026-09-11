@@ -20,7 +20,7 @@ const options = computed(() => [
 const enabled = computed(() => asBool(props.value));
 const readout = computed(() => {
   if (enabled.value === undefined) return t("features.unknown");
-  return enabled.value ? t("features.voicePrompts.active") : t("features.unknown");
+  return enabled.value ? t("features.voicePrompts.active") : t("features.voicePrompts.off");
 });
 </script>
 

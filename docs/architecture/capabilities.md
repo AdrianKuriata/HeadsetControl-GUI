@@ -90,7 +90,14 @@ write-only in the CLI, which is why the store holds the last written value
   current value from, and `device.readings` carries what the refresh loop read
   back.
 - **A row with no value shows "unknown", never "off"**: the app has not read the
-  device, and claiming a setting is off would be a lie about hardware.
+  device, and claiming a setting is off would be a lie about hardware. This binds
+  the **control**, not just the value column — a row whose control displays a
+  concrete setting while the readout says `—` is contradicting itself, which is
+  how the auto-off row came to state "never" on a headset set to five minutes
+  (#70). [ADR 0014](../decisions/0014-feature-row-contract.md) spells the rule
+  out for sliders and option groups; a stepper has no neutral position to fall
+  back to, so it renders `—` and keeps both buttons live, each committing to the
+  end it points at.
 - Values shown in UI come from validated domain types (`types.gen.ts`), never
   raw JSON — the adapter is an anti-corruption layer
   (see [overview.md](overview.md)).
