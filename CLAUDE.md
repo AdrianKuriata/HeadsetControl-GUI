@@ -288,19 +288,28 @@ src/
 ## Audeze Maxwell 2 and the upstream binary
 
 Both Maxwell 2 dongle PIDs are upstream and **released**: `0x4b29` (PS/PC, upstream #506)
-and `0x4b28` (Xbox — our PR `Sapd/HeadsetControl#540`, merged 2026-07-23), both shipping in
-**`headsetcontrol` 4.0.0** (2026-07-23). Issue #18 is closed; what remains of the profile
-work is the `0x4b28 → 'xbox'` entry in `profiles/audeze-maxwell2.ts` (#17).
+and `0x4b28` (Xbox — our PR `Sapd/HeadsetControl#540`, merged 2026-07-23). Issue #18 is
+closed; what remains of the profile work is the `0x4b28 → 'xbox'` entry in
+`profiles/audeze-maxwell2.ts` (#17).
 
-`MIN_VERSION` in `backend/detect.rs` is therefore a real `4.0.0`, not a guess, and the
-install screens point at upstream's signed `.deb`/`.rpm`/AppImage with a source build kept
-behind them (#48). 4.0.0 is a C→C++20 rewrite, but the **CLI and the JSON output are
-unchanged** — the recorded fixtures in `docs/fixtures/` still describe it, so the adapter
-did not move. A binary whose version cannot be compared (`continuous-…`, a git build) is
-still accepted.
+`MIN_VERSION` in `backend/detect.rs` is **4.1.0** (2026-08-27), and the reason is latency,
+not capability: 4.0.0 read every info capability before answering any structured-output
+call, so one parameter write cost **2.90 s** against **0.07 s** on 4.1.0 (our upstream PRs
+#549 and #550). 4.1.0 bumps the CLI's `api_version` to 1.5 because a write no longer
+reports info values — the whole of the change the adapter sees (#67). Install screens offer
+upstream's PPA / COPR / AUR first, the signed packages second, a source build last.
 
-4.0.0 also adds capabilities this app does not render yet — a parametric equalizer, USB
-vendor/product names, per-capability platform support. Nothing breaks on them: an unknown
+Since upstream #551 a git build names the tag it grew from (`4.1.0-12-gca98ed4`) instead of
+`continuous-…`, so it is **compared** on that tag rather than waved through; one built
+between 4.0.0 and 4.1.0 is rejected. The old uncomparable shape is still accepted.
+
+**Never record a fixture that reads the real Maxwell with released 4.1.0.** It still sends
+the parameter-setting packet that `Sapd/HeadsetControl#577` removed, and that packet shifts
+the headset's audio balance permanently (upstream #561). Use a build of master; writes are
+unaffected and may be recorded from the release. Details in `docs/architecture/testing.md`.
+
+4.1.0 also adds capabilities this app does not render yet — a parametric equalizer,
+`CAP_SIDETONE_STATUS` (#68), USB vendor/product names. Nothing breaks on them: an unknown
 `CAP_*` is logged and skipped by `features/registry.ts`, so each one is a new file plus one
 registry entry whenever it is worth doing.
 
