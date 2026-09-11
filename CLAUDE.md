@@ -128,6 +128,7 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 |---|---|
 | Install deps | `make setup` |
 | Run app (dev) | `make dev` |
+| Run app against an Audeze-safe binary | `make dev-upstream` |
 | Production build | `make build` |
 | Compile-only build (CI gate) | `make build-ci` |
 | Regenerate `types.gen.ts` | `make gen` |
@@ -303,10 +304,13 @@ Since upstream #551 a git build names the tag it grew from (`4.1.0-12-gca98ed4`)
 `continuous-…`, so it is **compared** on that tag rather than waved through; one built
 between 4.0.0 and 4.1.0 is rejected. The old uncomparable shape is still accepted.
 
-**Never record a fixture that reads the real Maxwell with released 4.1.0.** It still sends
-the parameter-setting packet that `Sapd/HeadsetControl#577` removed, and that packet shifts
-the headset's audio balance permanently (upstream #561). Use a build of master; writes are
-unaffected and may be recorded from the release. Details in `docs/architecture/testing.md`.
+**Never point the app or a fixture recording at a released `headsetcontrol` while the real
+Maxwell is attached.** Up to 4.1.0 it sends the parameter-setting packet that
+`Sapd/HeadsetControl#577` removed, and that packet shifts the headset's audio balance
+permanently (upstream #561) — the 5 s refresh loop would send it constantly. **`make
+dev-upstream`** builds master into `.upstream/` and runs the app against that, refusing to
+build if the packet ever comes back. Writes are unaffected and may be recorded from the
+release. Details in `docs/architecture/testing.md`; drop the target once the fix ships.
 
 4.1.0 also adds capabilities this app does not render yet — a parametric equalizer,
 `CAP_SIDETONE_STATUS` (#68), USB vendor/product names. Nothing breaks on them: an unknown
