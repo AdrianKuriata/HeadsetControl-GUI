@@ -38,13 +38,13 @@ describe("tauriBackend", () => {
     commands.detectBinary.mockResolvedValue({
       kind: "bad_version",
       found: "3.1.0",
-      required: "4.0.0",
+      required: "4.1.0",
     });
 
     await expect(tauriBackend.detect()).resolves.toEqual({
       kind: "bad_version",
       found: "3.1.0",
-      required: "4.0.0",
+      required: "4.1.0",
     });
   });
 

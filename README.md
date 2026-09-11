@@ -26,11 +26,13 @@ Rust stable (edition 2024).
   ```
   `libudev-dev` is the Linux hotplug monitor's build dependency; it is not
   needed on other platforms, where the app watches devices by polling.
-- The `headsetcontrol` binary in `PATH`, **4.0.0 or newer** (runtime dependency).
-  That release is the first one supporting the Audeze Maxwell 2, and upstream
-  ships signed `.deb`, `.rpm` and AppImage builds of it —
+- The `headsetcontrol` binary in `PATH`, **4.1.0 or newer** (runtime dependency).
+  Older releases read every info capability before answering any call, which made
+  one parameter write cost 2.90 s against 0.07 s here. Upstream publishes it in a
+  PPA (`ppa:sapd/headsetcontrol`), a Fedora COPR (`thesapd/headsetcontrol`), the
+  AUR, and as signed packages on
   [releases/latest](https://github.com/Sapd/HeadsetControl/releases/latest). A
-  build from git is fine too: a version the app cannot compare is accepted.
+  build from git is fine too, and is judged on the tag it grew from.
 - For `make smoke` only: `cargo install tauri-driver` and
   `sudo apt install webkit2gtk-driver` (plus `xvfb` on a headless machine)
 

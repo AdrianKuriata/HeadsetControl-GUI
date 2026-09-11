@@ -50,17 +50,17 @@ describe("screens that offer a retry", () => {
 
   it("names no version on the bad-version screen when the binary named none", () => {
     const { wrapper } = mountWithI18n(BadVersionScreen, {
-      props: { found: null, required: "4.0.0" },
+      props: { found: null, required: "4.1.0" },
     });
 
     expect(wrapper.get("[data-part='body']").text()).toContain("could not be read");
-    expect(wrapper.text()).toContain("4.0.0");
+    expect(wrapper.text()).toContain("4.1.0");
   });
 
   it("offers the signed packages first on both screens that have no usable binary", () => {
     for (const screen of [MissingBinaryScreen, BadVersionScreen]) {
       const { wrapper } = mountWithI18n(screen, {
-        props: { found: "2.5.0", required: "4.0.0" },
+        props: { found: "2.5.0", required: "4.1.0" },
       });
       const instructions = wrapper.get("[data-part='install-instructions']").text();
 
@@ -72,6 +72,15 @@ describe("screens that offer a retry", () => {
       expect(instructions).toContain("sudo dnf install ./headsetcontrol-");
       expect(instructions).toContain("chmod +x headsetcontrol-x86_64.AppImage");
     }
+  });
+
+  it("offers upstream's own repositories, the only route that keeps updating itself", () => {
+    const { wrapper } = mountWithI18n(MissingBinaryScreen);
+    const instructions = wrapper.get("[data-part='install-instructions']").text();
+
+    expect(instructions).toContain("sudo add-apt-repository ppa:sapd/headsetcontrol");
+    expect(instructions).toContain("sudo dnf copr enable thesapd/headsetcontrol");
+    expect(instructions).toContain("yay -S headsetcontrol");
   });
 
   it("keeps the source build on offer, for distributions upstream packages nothing for", () => {

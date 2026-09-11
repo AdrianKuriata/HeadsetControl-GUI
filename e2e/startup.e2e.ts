@@ -49,12 +49,12 @@ test.describe("startup", () => {
 
   test("names both versions when the binary is too old", async ({ page }) => {
     await boot(page, {
-      detection: { kind: "bad_version", found: "3.1.0", required: "4.0.0" },
+      detection: { kind: "bad_version", found: "3.1.0", required: "4.1.0" },
     });
 
     const screen = page.locator("[data-part='body']");
     await expect(screen).toContainText("3.1.0");
-    await expect(screen).toContainText("4.0.0");
+    await expect(screen).toContainText("4.1.0");
   });
 
   test("shows the udev rules when the headset cannot be opened", async ({ page }) => {

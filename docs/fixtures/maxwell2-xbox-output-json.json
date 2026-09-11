@@ -1,7 +1,7 @@
 {
   "name": "HeadsetControl",
-  "version": "continuous-52-gfe086cd-modified",
-  "api_version": "1.4",
+  "version": "4.1.0-12-gca98ed4",
+  "api_version": "1.5",
   "hidapi_version": "0.14.0",
   "device_count": 1,
   "devices": [
@@ -32,7 +32,7 @@
       ],
       "battery": {
         "status": "BATTERY_AVAILABLE",
-        "level": 92
+        "level": 95
       },
       "equalizer_presets_count": 10,
       "chatmix": 64

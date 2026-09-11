@@ -5,9 +5,25 @@ import { useI18n } from "vue-i18n";
 // interpolation, so they are never translated and never flagged as bare
 // strings. Distribution and format names are proper nouns for the same reason.
 //
-// Since 4.0.0 upstream ships signed packages for every format below, so that is
-// the route offered first — until then no release worked with a Maxwell 2 at all
-// and a source build was the only honest instruction.
+// Order is deliberate: a repository keeps the binary updating, a downloaded
+// package stays on the version it was fetched at, and a source build is last.
+
+// Upstream's own (Sapd/HeadsetControl README): a Launchpad PPA, a Fedora COPR
+// and the AUR.
+const REPOSITORIES = [
+  {
+    distribution: "Debian / Ubuntu",
+    command: `sudo add-apt-repository ppa:sapd/headsetcontrol
+sudo apt update && sudo apt install headsetcontrol`,
+  },
+  {
+    distribution: "Fedora / RHEL",
+    command: `sudo dnf copr enable thesapd/headsetcontrol
+sudo dnf install headsetcontrol`,
+  },
+  { distribution: "Arch Linux", command: "yay -S headsetcontrol" },
+];
+
 // Shown as selectable text, never as an `<a href>`. The capability set carries no
 // `opener` permission and no navigation allowlist, so an anchor would navigate the
 // app window itself out of the bundle — the same reason the udev rules on the
@@ -28,8 +44,9 @@ const PACKAGES = [
   { format: "AppImage", command: "chmod +x headsetcontrol-x86_64.AppImage" },
 ];
 
-// Kept as the fallback rather than dropped: upstream packages nothing for Arch,
-// and building from git is still how anyone runs a version newer than the tag.
+// Kept as the fallback rather than dropped: building from git is how anyone runs
+// a version newer than the tag, and how a distribution none of the above covers
+// gets the binary at all.
 // The commands are upstream's own (Sapd/HeadsetControl README, PROJECT.md §9).
 const DEPENDENCIES = [
   {
@@ -51,6 +68,23 @@ const { t } = useI18n({ useScope: "global" });
 <template>
   <div class="flex flex-col gap-3" data-part="install-instructions">
     <h2 class="font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
+      {{ t("install.repositories") }}
+    </h2>
+    <dl class="flex flex-col gap-2">
+      <template v-for="entry in REPOSITORIES" :key="entry.distribution">
+        <dt class="font-mono text-[11.5px] tracking-[0.08em] text-mid uppercase">
+          {{ entry.distribution }}
+        </dt>
+        <dd>
+          <pre
+            class="overflow-x-auto border border-hair p-3 font-mono text-[11.5px] text-mid select-text"
+          ><code>{{ entry.command }}</code></pre>
+        </dd>
+      </template>
+    </dl>
+    <p class="max-w-[62ch] text-mid">{{ t("install.udev") }}</p>
+
+    <h2 class="mt-4 font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
       {{ t("install.packages") }}
     </h2>
     <pre
@@ -76,7 +110,6 @@ const { t } = useI18n({ useScope: "global" });
         </dd>
       </template>
     </dl>
-    <p class="max-w-[62ch] text-mid">{{ t("install.udev") }}</p>
 
     <h2 class="mt-4 font-mono text-[11.5px] tracking-[0.08em] text-ink uppercase">
       {{ t("install.source") }}
