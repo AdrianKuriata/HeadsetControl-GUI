@@ -172,6 +172,14 @@ describe("VoicePromptsRow", () => {
 
     expect(wrapper.get('[data-part="state"]').text()).toBe("active");
   });
+
+  it("reads out a known off as off, not as unknown", () => {
+    // "—" is reserved for a value nobody has written; LightsRow already draws
+    // the line there and this row was the one exception (#70).
+    const { wrapper } = mountWithI18n(VoicePromptsRow, { props: { value: bool(false) } });
+
+    expect(wrapper.get('[data-part="state"]').text()).toBe("off");
+  });
 });
 
 describe("LightsRow", () => {
@@ -221,6 +229,38 @@ describe("InactiveTimeRow", () => {
     await at(wrapper.findAll("button"), 1).trigger("click");
 
     expect(wrapper.emitted("change")).toBeUndefined();
+  });
+
+  it("says nothing in the control until a value is written", () => {
+    // "never" is a real setting (`-i 0`), so showing it for an unknown value
+    // states something about the headset that the app cannot know — and the
+    // owner's was on 5 minutes while this read "never" (#70).
+    const { wrapper } = mountWithI18n(InactiveTimeRow);
+
+    expect(wrapper.get('[data-part="value"]').text()).toBe("—");
+  });
+
+  it("keeps both ends reachable while nothing is known", () => {
+    const buttons = mountWithI18n(InactiveTimeRow).wrapper.findAll("button");
+
+    expect(at(buttons, 0).attributes("disabled")).toBeUndefined();
+    expect(at(buttons, 1).attributes("disabled")).toBeUndefined();
+  });
+
+  it("commits to the first real interval when stepped up from unknown", async () => {
+    const { wrapper } = mountWithI18n(InactiveTimeRow);
+
+    await at(wrapper.findAll("button"), 1).trigger("click");
+
+    expect(wrapper.emitted("change")).toEqual([[int(5)]]);
+  });
+
+  it("commits to never when stepped down from unknown", async () => {
+    const { wrapper } = mountWithI18n(InactiveTimeRow);
+
+    await at(wrapper.findAll("button"), 0).trigger("click");
+
+    expect(wrapper.emitted("change")).toEqual([[int(0)]]);
   });
 
   it("calls zero never, not a duration", () => {
