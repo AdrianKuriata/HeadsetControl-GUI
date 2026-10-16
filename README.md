@@ -17,7 +17,7 @@ Rust stable (edition 2024).
 
 ## Requirements
 
-- Rust ≥ 1.85 (edition 2024) — install via [rustup](https://rustup.rs)
+- Rust ≥ 1.90 (edition 2024; Tauri 2.12 needs it) — install via [rustup](https://rustup.rs)
 - Node.js 20+ and npm
 - Tauri Linux prerequisites:
   ```sh
