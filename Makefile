@@ -103,8 +103,7 @@ commitlint: ## Check this branch's commit messages (Conventional Commits)
 
 audit: ## Dependency advisories (npm + cargo)
 	# What ships is the gate. A devDependency advisory never reaches a user, so
-	# it is printed and left to Dependabot instead of blocking an unrelated PR —
-	# today that is the js-beautify chain under @vue/test-utils.
+	# it is printed and left to Dependabot instead of blocking an unrelated PR.
 	npm audit --omit=dev --audit-level=high
 	-npm audit
 	# Needs cargo-audit (`cargo install cargo-audit`); CI installs it from a

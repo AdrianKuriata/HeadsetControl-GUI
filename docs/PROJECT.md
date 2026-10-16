@@ -208,7 +208,7 @@ src/
 | Warstwa | Narzędzie | Uwagi |
 |---|---|---|
 | Runtime | Tauri 2.x | + plugins: store, log, updater, notification |
-| UI | Vue 3.5+, Pinia 4, Vite 8 | `<script setup>`, TypeScript strict (TS 5.x — vue-tsc nie obsługuje jeszcze TS 7) |
+| UI | Vue 3.5+, Pinia 4, Vite 8 | `<script setup>`, TypeScript strict (TS 6.x — typescript-eslint i vue-tsc nie obsługują jeszcze TS 7) |
 | Backend | Rust stable (edition 2024) | serde, thiserror, udev, specta |
 | Testy | Vitest, Playwright, cargo test | fixtures kontraktowe |
 | CI/CD | GitHub Actions | lint → test → build → release |
