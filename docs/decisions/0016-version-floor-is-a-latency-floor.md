@@ -4,7 +4,9 @@
 
 Accepted (2026-09-11). Supersedes the version-floor part of
 [0010](0010-binary-detection-and-permission-diagnosis.md); the rest of that ADR
-stands.
+stands. The floor itself is superseded by
+[0017](0017-refuse-binaries-that-damage-the-headset.md) (4.1.1, for hardware
+safety); the latency argument here still holds.
 
 ## Context
 

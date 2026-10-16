@@ -71,12 +71,21 @@ const CASES = [
     },
   },
   {
-    // The `healthy` fixture is a source build, whose version the gate cannot
-    // compare and therefore waves through. This is the other half: a real
-    // release number, actually compared against the minimum, and accepted.
-    name: "a released binary at the minimum version lands on the ready screen",
-    scenario: "supported-release",
-    check: (app) => app.expectText("h1", "Audeze Maxwell 2"),
+    // 4.1.0 sends a packet on every status read that shifts a Maxwell's audio
+    // balance for good (ADR 0017). Refused on `--version`, which only
+    // enumerates USB ids — and nothing, the hotplug loop included, may follow
+    // it with a call that reads the headset.
+    name: "a released 4.1.0 is refused before anything reads the headset",
+    scenario: "release-4-1-0",
+    async check(app, { log }) {
+      await app.expectText("[data-part='body']", "4.1.0");
+
+      const made = await calls(log);
+      assert(
+        made.every((call) => call === "--version"),
+        `a call besides --version reached the binary: ${made.join(" | ")}`,
+      );
+    },
   },
   {
     name: "output the adapter cannot read lands on the bad-version screen",

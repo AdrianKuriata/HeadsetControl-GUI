@@ -12,6 +12,7 @@
 //! installed — including on CI.
 
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Deserialize;
 
@@ -137,14 +138,77 @@ const WRITE_FLAGS: &[Write] = &[
 /// Two things are injected, and for the same reason: the process spawn and the
 /// look at device nodes are the only impure parts of talking to a headset, so
 /// keeping both behind traits leaves everything here testable from fixtures.
+///
+/// Nothing that reads a device runs until [`HeadsetBackend::detect`] has
+/// vetted the binary's version: on `headsetcontrol` ≤ 4.1.0 every such read
+/// sends a packet that shifts a Maxwell's audio balance for good (ADR 0017).
+/// Held here rather than in the frontend because the hotplug loop lists devices
+/// on its own.
 pub struct HeadsetControlBackend<R: CliRunner, A: DeviceAccess> {
     runner: R,
     access: A,
+    vouched: AtomicBool,
 }
 
 impl<R: CliRunner, A: DeviceAccess> HeadsetControlBackend<R, A> {
     pub fn new(runner: R, access: A) -> Self {
-        Self { runner, access }
+        Self {
+            runner,
+            access,
+            vouched: AtomicBool::new(false),
+        }
+    }
+
+    /// [`HeadsetBackend::detect`], with every early verdict as an `Err`.
+    fn vet_then_list(&self) -> Result<Detection, Detection> {
+        self.vouched.store(false, Ordering::SeqCst);
+
+        let version = self.run_or_missing("--version".to_owned())?;
+        detect::vet(parse_version(&version.stdout))?;
+        self.vouched.store(true, Ordering::SeqCst);
+
+        let output = self.run_or_missing(json_output())?;
+
+        // Output this build cannot read is an incompatible binary, not a
+        // missing one.
+        let raw = serde_json::from_str::<RawOutput>(&output.stdout).map_err(|_| {
+            let complaint = output.stderr.trim();
+            log::warn!("unreadable headsetcontrol output: {complaint}");
+            Detection::BadVersion {
+                found: None,
+                required: detect::required_version(),
+            }
+        })?;
+
+        // A device whose usb ids make no sense cannot be permission-checked;
+        // dropping it here is not hiding anything, because `list_devices`
+        // reports the same output as an error moments later.
+        let devices: Vec<Device> = raw
+            .devices
+            .iter()
+            .filter_map(|raw| to_device(raw).ok())
+            .collect();
+
+        Ok(detect::diagnose(&devices, &self.access))
+    }
+
+    fn run_or_missing(&self, arg: String) -> Result<CliOutput, Detection> {
+        self.runner.run(&[arg]).map_err(|message| {
+            log::info!("headsetcontrol could not be run: {message}");
+            Detection::MissingBinary
+        })
+    }
+
+    /// [`Self::output`] for a call that reaches a device — refused outright
+    /// until a detection has vetted the binary.
+    fn device_output(&self, args: &[String]) -> Result<String, BackendError> {
+        if !self.vouched.load(Ordering::SeqCst) {
+            return Err(BackendError::Failed {
+                message: "headsetcontrol has not passed the version check".to_owned(),
+            });
+        }
+
+        self.output(args)
     }
 
     /// Runs the CLI and hands back its stdout, having ruled out the two ways
@@ -172,44 +236,15 @@ impl<R: CliRunner, A: DeviceAccess> HeadsetControlBackend<R, A> {
 }
 
 impl<R: CliRunner, A: DeviceAccess> HeadsetBackend for HeadsetControlBackend<R, A> {
-    /// One invocation answers everything the startup probe needs: the CLI's
-    /// `--output=json` names its own version *and* lists the devices whose
-    /// access has to be checked, so detection costs no more than a device list.
+    /// Two invocations, in an order that matters: `--version` only enumerates
+    /// USB ids, while `--output=json` reads every device's status — which is
+    /// exactly what an unsafe binary must never be asked to do.
     fn detect(&self) -> Detection {
-        let output = match self.runner.run(&[json_output()]) {
-            Ok(output) => output,
-            Err(message) => {
-                log::info!("headsetcontrol could not be run: {message}");
-                return Detection::MissingBinary;
-            }
-        };
-
-        // Output this build cannot read is an incompatible binary, not a
-        // missing one — including the usage text an older CLI prints on stderr
-        // when it does not know `--output=json`.
-        let Ok(raw) = serde_json::from_str::<RawOutput>(&output.stdout) else {
-            let complaint = output.stderr.trim();
-            log::warn!("unreadable headsetcontrol output: {complaint}");
-            return Detection::BadVersion {
-                found: None,
-                required: detect::required_version(),
-            };
-        };
-
-        // A device whose usb ids make no sense cannot be permission-checked;
-        // dropping it here is not hiding anything, because `list_devices`
-        // reports the same output as an error moments later.
-        let devices: Vec<Device> = raw
-            .devices
-            .iter()
-            .filter_map(|raw| to_device(raw).ok())
-            .collect();
-
-        detect::diagnose(raw.version.as_deref(), &devices, &self.access)
+        self.vet_then_list().unwrap_or_else(|verdict| verdict)
     }
 
     fn list_devices(&self) -> Result<Vec<Device>, BackendError> {
-        parse_devices(&self.output(&[json_output()])?)
+        parse_devices(&self.device_output(&[json_output()])?)
     }
 
     fn device_state(&self, device_id: &str) -> Result<DeviceState, BackendError> {
@@ -224,7 +259,7 @@ impl<R: CliRunner, A: DeviceAccess> HeadsetBackend for HeadsetControlBackend<R, 
             json_output(),
         ];
 
-        parse_state(&self.output(&args)?, device_id)
+        parse_state(&self.device_output(&args)?, device_id)
     }
 
     fn set_param(
@@ -264,8 +299,18 @@ impl<R: CliRunner, A: DeviceAccess> HeadsetBackend for HeadsetControlBackend<R, 
             json_output(),
         ];
 
-        parse_write(&self.output(&args)?, param)
+        parse_write(&self.device_output(&args)?, param)
     }
+}
+
+/// `HeadsetControl 4.1.0` → `4.1.0`; `None` for anything else, which is what
+/// a binary too old or too foreign to name itself prints.
+fn parse_version(stdout: &str) -> Option<&str> {
+    stdout
+        .trim()
+        .strip_prefix("HeadsetControl ")
+        .map(str::trim)
+        .filter(|version| !version.is_empty())
 }
 
 fn json_output() -> String {
@@ -290,10 +335,6 @@ fn cli_device_arg(device_id: &str) -> Result<String, BackendError> {
 
 #[derive(Deserialize)]
 struct RawOutput {
-    /// How the CLI names its own build: a release (`3.2.0`) or a git
-    /// description (`continuous-52-gfe086cd`). Absent output is not a version
-    /// this app can vouch for — see [`detect::diagnose`].
-    version: Option<String>,
     #[serde(default)]
     devices: Vec<RawDevice>,
     #[serde(default)]
@@ -447,6 +488,8 @@ fn parse_write(json: &str, param: &str) -> Result<(), BackendError> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::Ordering;
+
     use super::*;
 
     const HEALTHY: &str = include_str!("../../../docs/fixtures/maxwell2-xbox-output-json.json");
@@ -456,16 +499,28 @@ mod tests {
     const EMPTY: &str = include_str!("../../../docs/fixtures/no-devices.json");
     const UNKNOWN_CAP: &str = include_str!("../../../docs/fixtures/unknown-capability.json");
     const MALFORMED: &str = include_str!("../../../docs/fixtures/malformed-truncated.json");
+    /// `headsetcontrol --version` from the released 4.1.0.
+    const VERSION_RELEASE: &str = include_str!("../../../docs/fixtures/version-release.txt");
     /// What the binary the fixtures were recorded from calls itself.
     const RECORDED_VERSION: &str = "4.1.0-12-gca98ed4";
+
+    /// What `--version` prints for a binary calling itself `version`.
+    fn version_line(version: &str) -> String {
+        VERSION_RELEASE.replace("4.1.0", version)
+    }
 
     const MAXWELL: &str = "3329:4b28";
 
     /// Replays recorded output and records what the adapter asked for.
+    /// `--version` gets its own answer — the recorded build's, unless a test
+    /// says otherwise — and either answer can be changed mid-test.
     struct FakeRunner {
         stdout: String,
         stderr: String,
-        error: Option<String>,
+        version: std::sync::Mutex<String>,
+        error: std::sync::Mutex<Option<String>>,
+        /// Fails every call but `--version` — gone between the two.
+        vanishing: std::sync::Mutex<Option<String>>,
         calls: std::sync::Mutex<Vec<Vec<String>>>,
     }
 
@@ -474,7 +529,9 @@ mod tests {
             Self {
                 stdout: stdout.to_owned(),
                 stderr: String::new(),
-                error: None,
+                version: std::sync::Mutex::new(version_line(RECORDED_VERSION)),
+                error: std::sync::Mutex::new(None),
+                vanishing: std::sync::Mutex::new(None),
                 calls: std::sync::Mutex::new(Vec::new()),
             }
         }
@@ -487,19 +544,32 @@ mod tests {
         }
 
         fn failing(error: &str) -> Self {
-            Self {
-                error: Some(error.to_owned()),
-                ..Self::replaying("")
-            }
+            let runner = Self::replaying("");
+            runner.fail_with(error);
+            runner
+        }
+
+        /// From now on `--version` prints `stdout`.
+        fn report_version(&self, stdout: &str) {
+            *self.version.lock().unwrap() = stdout.to_owned();
+        }
+
+        /// From now on nothing can be run.
+        fn fail_with(&self, error: &str) {
+            *self.error.lock().unwrap() = Some(error.to_owned());
+        }
+
+        /// Runnable again, answering as before.
+        fn reinstall(&self) {
+            *self.error.lock().unwrap() = None;
+        }
+
+        fn calls(&self) -> Vec<Vec<String>> {
+            self.calls.lock().unwrap().clone()
         }
 
         fn last_call(&self) -> Vec<String> {
-            self.calls
-                .lock()
-                .unwrap()
-                .last()
-                .cloned()
-                .unwrap_or_default()
+            self.calls().last().cloned().unwrap_or_default()
         }
     }
 
@@ -507,13 +577,22 @@ mod tests {
         fn run(&self, args: &[String]) -> Result<CliOutput, String> {
             self.calls.lock().unwrap().push(args.to_vec());
 
-            match &self.error {
-                Some(error) => Err(error.clone()),
-                None => Ok(CliOutput {
-                    stdout: self.stdout.clone(),
-                    stderr: self.stderr.clone(),
-                }),
+            if let Some(error) = self.error.lock().unwrap().clone() {
+                return Err(error);
             }
+
+            let stdout = if args == ["--version"] {
+                self.version.lock().unwrap().clone()
+            } else if let Some(error) = self.vanishing.lock().unwrap().clone() {
+                return Err(error);
+            } else {
+                self.stdout.clone()
+            };
+
+            Ok(CliOutput {
+                stdout,
+                stderr: self.stderr.clone(),
+            })
         }
     }
 
@@ -526,8 +605,12 @@ mod tests {
         }
     }
 
+    /// A backend a detection has already vouched for, which is the only kind
+    /// that reaches a device.
     fn backend(stdout: &str) -> HeadsetControlBackend<FakeRunner, FakeAccess> {
-        with_access(FakeRunner::replaying(stdout), detect::Access::Granted)
+        let backend = with_access(FakeRunner::replaying(stdout), detect::Access::Granted);
+        backend.vouched.store(true, Ordering::SeqCst);
+        backend
     }
 
     fn with_access(
@@ -870,17 +953,18 @@ mod tests {
 
     #[test]
     fn accepts_the_recorded_output_of_a_development_build() {
-        // The fixture is real output from a source build, which is the only
-        // kind that carries Maxwell 2 support today.
+        // The fixture is real output from a master build — until 4.1.1 ships,
+        // the only kind that reads a Maxwell without shifting its balance.
         assert_eq!(backend(HEALTHY).detect(), Detection::Ready);
     }
 
     #[test]
     fn detects_a_released_binary_that_is_too_old() {
-        let json = HEALTHY.replace(RECORDED_VERSION, "3.1.0");
+        let backend = backend(HEALTHY);
+        backend.runner.report_version(&version_line("3.1.0"));
 
         assert_eq!(
-            backend(&json).detect(),
+            backend.detect(),
             Detection::BadVersion {
                 found: Some("3.1.0".to_owned()),
                 required: detect::required_version(),
@@ -889,13 +973,65 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_version_the_way_a_release_prints_it() {
+        // The recorded release itself: 4.1.0 is below the floor.
+        let backend = backend(HEALTHY);
+        backend.runner.report_version(VERSION_RELEASE);
+
+        assert_eq!(
+            backend.detect(),
+            Detection::BadVersion {
+                found: Some("4.1.0".to_owned()),
+                required: detect::required_version(),
+            }
+        );
+    }
+
+    #[test]
+    fn asks_for_the_version_before_anything_that_reads_a_device() {
+        // `--version` returns after enumerating USB ids; a json call reads
+        // status, which is what sends the packet on an unsafe binary.
+        let backend = backend(HEALTHY);
+
+        backend.detect();
+
+        assert_eq!(
+            backend.runner.calls(),
+            vec![
+                vec!["--version".to_owned()],
+                vec!["--output=json".to_owned()]
+            ]
+        );
+    }
+
+    #[test]
+    fn detects_a_binary_gone_between_its_two_calls_as_a_missing_one() {
+        // An uninstall racing the probe.
+        let backend = backend(HEALTHY);
+        *backend.runner.vanishing.lock().unwrap() = Some("No such file or directory".to_owned());
+
+        assert_eq!(backend.detect(), Detection::MissingBinary);
+    }
+
+    #[test]
+    fn makes_no_json_call_to_a_binary_it_refuses() {
+        let backend = backend(HEALTHY);
+        backend.runner.report_version(VERSION_RELEASE);
+
+        backend.detect();
+
+        assert_eq!(backend.runner.calls(), vec![vec!["--version".to_owned()]]);
+    }
+
+    #[test]
     fn detects_output_it_cannot_read_as_an_incompatible_binary() {
         // What an older CLI does with an option it never heard of: a complaint
-        // on stderr and no json at all.
+        // on stderr and nothing on stdout — here for `--version` itself.
         let unusable = with_access(
             FakeRunner::complaining("Usage: headsetcontrol [options]"),
             detect::Access::Granted,
         );
+        unusable.runner.report_version("");
 
         let incompatible = Detection::BadVersion {
             found: None,
@@ -903,21 +1039,81 @@ mod tests {
         };
 
         assert_eq!(unusable.detect(), incompatible);
+        assert_eq!(unusable.runner.calls().len(), 1);
+        // A safe version whose json this build cannot read is incompatible too.
         assert_eq!(backend(MALFORMED).detect(), incompatible);
     }
 
     #[test]
-    fn detects_output_that_names_no_version_as_an_incompatible_binary() {
-        // Json this app can read, from a CLI too old to say what it is.
-        let json = HEALTHY.replace(&format!("\"version\": \"{RECORDED_VERSION}\","), "");
+    fn detects_a_version_line_it_does_not_recognise_as_an_incompatible_binary() {
+        let backend = backend(HEALTHY);
+        backend
+            .runner
+            .report_version("headsetcontrol, some version\n");
 
         assert_eq!(
-            backend(&json).detect(),
+            backend.detect(),
             Detection::BadVersion {
                 found: None,
                 required: detect::required_version(),
             }
         );
+    }
+
+    // ── the interlock ───────────────────────────────────────────────────────
+
+    #[test]
+    fn reaches_no_device_before_a_detection_vouched_for_the_binary() {
+        // The Rust hotplug loop lists devices on its own, before the frontend
+        // has asked anything; it must not be what reads an unsafe binary's
+        // status.
+        let backend = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Granted);
+        let refused = BackendError::Failed {
+            message: "headsetcontrol has not passed the version check".to_owned(),
+        };
+
+        assert_eq!(backend.list_devices().unwrap_err(), refused);
+        assert_eq!(backend.device_state(MAXWELL).unwrap_err(), refused);
+        assert_eq!(
+            backend
+                .set_param(MAXWELL, "CAP_SIDETONE", ParamValue::Int(1))
+                .unwrap_err(),
+            refused
+        );
+        assert!(backend.runner.calls().is_empty());
+    }
+
+    #[test]
+    fn reaches_devices_once_a_detection_vouched_for_the_binary() {
+        let backend = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Granted);
+
+        assert_eq!(backend.detect(), Detection::Ready);
+        assert!(backend.list_devices().is_ok());
+    }
+
+    #[test]
+    fn stops_reaching_devices_once_a_detection_refuses_the_binary() {
+        // Swapped for an older one mid-session, then re-checked by a retry.
+        let backend = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Granted);
+        backend.detect();
+
+        backend.runner.report_version(VERSION_RELEASE);
+        backend.detect();
+
+        assert!(backend.list_devices().is_err());
+    }
+
+    #[test]
+    fn stops_reaching_devices_once_the_binary_is_gone() {
+        let backend = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Granted);
+        backend.detect();
+
+        backend.runner.fail_with("No such file or directory");
+        assert_eq!(backend.detect(), Detection::MissingBinary);
+        // Back on PATH, but not yet re-checked.
+        backend.runner.reinstall();
+
+        assert!(backend.list_devices().is_err());
     }
 
     #[test]
@@ -946,10 +1142,9 @@ mod tests {
 
     #[test]
     fn reports_a_binary_it_could_not_run() {
-        let backend = with_access(
-            FakeRunner::failing("No such file or directory"),
-            detect::Access::Granted,
-        );
+        // Vouched for, then gone — an uninstall while the app is open.
+        let backend = backend(HEALTHY);
+        backend.runner.fail_with("No such file or directory");
         let expected = BackendError::Failed {
             message: "could not run headsetcontrol: No such file or directory".to_owned(),
         };
@@ -971,6 +1166,7 @@ mod tests {
             FakeRunner::complaining("Error: device: format: vid:pid"),
             detect::Access::Granted,
         );
+        backend.vouched.store(true, Ordering::SeqCst);
 
         assert_eq!(
             backend.list_devices().unwrap_err(),

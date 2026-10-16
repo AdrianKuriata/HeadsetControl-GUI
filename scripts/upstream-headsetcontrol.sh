@@ -5,8 +5,8 @@
 #
 # Released 4.1.0 sends a parameter-setting packet on every info read, which
 # permanently shifts a Maxwell's audio balance (Sapd/HeadsetControl#561). The
-# fix, #577, landed after the tag. Until it ships, `make dev` against a packaged
-# binary sends that packet every refresh tick — see ADR 0016.
+# fix, #577, landed after the tag. Until it ships, the app refuses packaged
+# binaries (ADR 0017), and this build is the one it accepts.
 #
 # Delete this script and its targets once the fix is in a release the version
 # gate accepts.

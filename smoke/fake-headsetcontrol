@@ -18,6 +18,25 @@ if [ -n "${SMOKE_LOG:-}" ]; then
   printf '%s\n' "$*" >>"$SMOKE_LOG"
 fi
 
+# `--version` is the first thing the adapter asks, before any call that reads a
+# device. The answer is what the scenario's binary calls itself: by default the
+# master build the recorded fixtures came from, which carries upstream #577.
+version="4.1.0-12-gca98ed4"
+case "$scenario" in
+  old-release) version="3.1.0" ;;
+  release-4-1-0) version="4.1.0" ;;
+esac
+
+if [ "$*" = "--version" ]; then
+  case "$scenario" in
+    hang | hang-forking) ;;
+    *)
+      echo "HeadsetControl $version"
+      exit 0
+      ;;
+  esac
+fi
+
 # A write is any call carrying one of the CLI's setter flags; everything else is
 # a read. The two answer in different shapes (`actions` vs `devices`), which is
 # exactly what the adapter has to tell apart.
@@ -54,11 +73,10 @@ case "$scenario" in
   malformed)
     cat "$fixtures/malformed-truncated.json"
     ;;
-  old-release)
-    cat "$fixtures/old-release.json"
-    ;;
-  supported-release)
-    cat "$fixtures/supported-release.json"
+  old-release | release-4-1-0)
+    # Refused on `--version` alone; reaching this is the bug the smoke case
+    # for it exists to catch.
+    cat "$fixtures/maxwell2-xbox-output-json.json"
     ;;
   no-devices)
     cat "$fixtures/no-devices.json"

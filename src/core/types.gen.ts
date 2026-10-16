@@ -45,9 +45,10 @@ export type Detection =
 /**  Nothing to run — not installed, or not on `PATH`. */
 { kind: "missing_binary" } | 
 /**
- *  A binary that is too old, or one whose output this app cannot read at
- *  all. `found` is `None` in the second case: an incompatible binary is a
- *  clear screen rather than an invented version number.
+ *  A binary that is too old, whose version cannot be compared, or whose
+ *  output this app cannot read at all. `found` is `None` in the last case:
+ *  an incompatible binary is a clear screen rather than an invented version
+ *  number.
  */
 { kind: "bad_version"; found: string | null; required: string } | 
 /**

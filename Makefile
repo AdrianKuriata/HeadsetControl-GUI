@@ -5,7 +5,7 @@
 CARGO := cargo --locked
 RS_MANIFEST := src-tauri/Cargo.toml
 
-# Where `make dev-upstream` keeps its build of upstream master (see ADR 0016).
+# Where `make dev-upstream` keeps its build of upstream master (see ADR 0017).
 UPSTREAM_DIR := .upstream/HeadsetControl
 UPSTREAM_BIN := $(UPSTREAM_DIR)/build/headsetcontrol
 
@@ -37,9 +37,8 @@ dev-mock: ## Run the frontend alone against the scripted MockBackend
 
 # Released headsetcontrol up to 4.1.0 sends a parameter-setting packet on every
 # info read that permanently shifts an Audeze Maxwell's audio balance (upstream
-# #561, fixed in #577 after the tag). The refresh loop reads every 5 s, so `make
-# dev` against a packaged binary sends it constantly. Drop this target once the
-# fix is in a release — ADR 0016.
+# #561, fixed in #577 after the tag). The app refuses such a binary (ADR 0017),
+# so until 4.1.1 ships this is the way to run it at all. Drop this target then.
 dev-upstream: $(UPSTREAM_BIN) ## Run the app against a build of upstream master (Audeze-safe)
 	PATH="$(CURDIR)/$(UPSTREAM_DIR)/build:$$PATH" npm run tauri dev
 
