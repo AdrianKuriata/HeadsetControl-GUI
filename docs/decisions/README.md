@@ -58,4 +58,5 @@ Routine implementation choices that follow the spec need no ADR.
 | [0013](0013-stores-optimistic-writes.md) | Stores: injected backend, a focused device, optimistic writes with a guarded rollback | Accepted |
 | [0014](0014-feature-row-contract.md) | Feature rows: one capability, one component, one shared prop contract | Accepted |
 | [0015](0015-coalesce-writes-per-capability.md) | Coalesce writes per capability instead of queueing them | Accepted |
-| [0016](0016-version-floor-is-a-latency-floor.md) | The version floor buys latency, not capability | Accepted |
+| [0016](0016-version-floor-is-a-latency-floor.md) | The version floor buys latency, not capability | Accepted; floor superseded by 0017 |
+| [0017](0017-refuse-binaries-that-damage-the-headset.md) | Refuse a headsetcontrol that damages the headset, before it reads anything | Accepted |

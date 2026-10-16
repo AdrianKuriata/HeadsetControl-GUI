@@ -24,6 +24,7 @@ const body = computed(() =>
       {{ t("screens.badVersion.title") }}
     </h1>
     <p class="max-w-[62ch] text-mid" data-part="body">{{ body }}</p>
+    <p class="max-w-[62ch] text-mid" data-part="why">{{ t("screens.badVersion.why") }}</p>
     <InstallInstructions />
     <button
       type="button"

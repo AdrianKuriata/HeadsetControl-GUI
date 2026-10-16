@@ -26,13 +26,14 @@ Rust stable (edition 2024).
   ```
   `libudev-dev` is the Linux hotplug monitor's build dependency; it is not
   needed on other platforms, where the app watches devices by polling.
-- The `headsetcontrol` binary in `PATH`, **4.1.0 or newer** (runtime dependency).
-  Older releases read every info capability before answering any call, which made
-  one parameter write cost 2.90 s against 0.07 s here. Upstream publishes it in a
-  PPA (`ppa:sapd/headsetcontrol`), a Fedora COPR (`thesapd/headsetcontrol`), the
-  AUR, and as signed packages on
-  [releases/latest](https://github.com/Sapd/HeadsetControl/releases/latest). A
-  build from git is fine too, and is judged on the tag it grew from.
+- The `headsetcontrol` binary in `PATH`, **4.1.1 or newer** (runtime dependency).
+  4.0.0 and 4.1.0 send a packet on every status read that permanently shifts an
+  Audeze Maxwell's audio balance (Sapd/HeadsetControl#561), so the app refuses
+  them. Until 4.1.1 is released, build upstream master: `4.1.0-8-g…` and later
+  carry the fix, and `make dev-upstream` does it for you. Upstream publishes
+  releases in a PPA (`ppa:sapd/headsetcontrol`), a Fedora COPR
+  (`thesapd/headsetcontrol`), the AUR, and as signed packages on
+  [releases/latest](https://github.com/Sapd/HeadsetControl/releases/latest).
 - For `make smoke` only: `cargo install tauri-driver` and
   `sudo apt install webkit2gtk-driver` (plus `xvfb` on a headless machine)
 

@@ -48,19 +48,29 @@ describe("screens that offer a retry", () => {
     expect(wrapper.emitted("retry")).toHaveLength(1);
   });
 
+  it("says why an older binary is refused, and where a new enough one comes from", () => {
+    const { wrapper } = mountWithI18n(BadVersionScreen, {
+      props: { found: "4.1.0", required: "4.1.1" },
+    });
+
+    const why = wrapper.get("[data-part='why']").text();
+    expect(why).toContain("audio balance");
+    expect(why).toContain("build it from source");
+  });
+
   it("names no version on the bad-version screen when the binary named none", () => {
     const { wrapper } = mountWithI18n(BadVersionScreen, {
-      props: { found: null, required: "4.1.0" },
+      props: { found: null, required: "4.1.1" },
     });
 
     expect(wrapper.get("[data-part='body']").text()).toContain("could not be read");
-    expect(wrapper.text()).toContain("4.1.0");
+    expect(wrapper.text()).toContain("4.1.1");
   });
 
   it("offers the signed packages first on both screens that have no usable binary", () => {
     for (const screen of [MissingBinaryScreen, BadVersionScreen]) {
       const { wrapper } = mountWithI18n(screen, {
-        props: { found: "2.5.0", required: "4.1.0" },
+        props: { found: "2.5.0", required: "4.1.1" },
       });
       const instructions = wrapper.get("[data-part='install-instructions']").text();
 

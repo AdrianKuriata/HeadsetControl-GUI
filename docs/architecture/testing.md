@@ -28,7 +28,8 @@ same thresholds and blocks merge.
 
 ## Contract fixtures
 
-`docs/fixtures/` holds `headsetcontrol --output json` output. The Rust adapter is
+`docs/fixtures/` holds `headsetcontrol --output json` output, plus what
+`--version` prints. The Rust adapter is
 tested against it (`backend/headsetcontrol.rs`) so that **upgrading the binary and
 breaking the format turns CI red** instead of crashing users. When touching the
 parser: keep existing fixtures, add new ones for new formats.
@@ -42,8 +43,7 @@ parser: keep existing fixtures, add new ones for new formats.
 | [`no-devices.json`](../fixtures/no-devices.json) | hand-authored | nothing connected — an empty list, not an error |
 | [`unknown-capability.json`](../fixtures/unknown-capability.json) | hand-authored | `CAP_FROM_THE_FUTURE` passing through untouched; a charging battery |
 | [`malformed-truncated.json`](../fixtures/malformed-truncated.json) | hand-authored | output cut off mid-string — must be rejected, never half-read |
-| [`old-release.json`](../fixtures/old-release.json) | hand-authored | the healthy output as a *released* `3.1.0` would report it — the version gate's reject case (#9) |
-| [`supported-release.json`](../fixtures/supported-release.json) | hand-authored | the same output as a released `4.1.0` — the gate's *accept* case at the floor itself (#67) |
+| [`version-release.txt`](../fixtures/version-release.txt) | recorded (`--version`, 4.1.0) | the line the version gate parses. `--version` only enumerates USB ids, so recording it from the release is safe; the tests derive every other version from it ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)) |
 | [`write-action-success.json`](../fixtures/write-action-success.json) | recorded (`--test-device`, 4.1.0) | a write everything accepted. Since upstream #549 a write lists the devices but reads no values from them, which is what this fixture pins |
 
 Recorded fixtures are byte-identical to what the binary printed, so
@@ -57,8 +57,9 @@ Two recording rules, both about the Maxwell 2:
   from released 4.1.0.** 4.1.0 still sends the parameter-setting packet that
   [Sapd/HeadsetControl#577](https://github.com/Sapd/HeadsetControl/pull/577)
   removed, and it shifts the headset's audio balance for good. Such fixtures
-  therefore carry a version like `4.1.0-12-gca98ed4`, which the gate compares
-  and accepts on its tag.
+  therefore carry a version like `4.1.0-12-gca98ed4`. The app itself refuses
+  anything older than that build
+  ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)).
 - **Anything the mock device can produce is recorded from released 4.1.0**, with
   `--test-device -d 0xf00b:0xa00c` so the run never touches the Maxwell.
   `--test-device=1` makes every write fail, which is where a recorded failure
@@ -126,7 +127,7 @@ asserts the adapter assembled the CLI arguments the binary actually wants
 | `healthy` | the device, its capability rows and its battery, parsed by the real adapter |
 | `no-devices` | an empty list is "nothing connected", not an error |
 | `old-release` | the version gate rejects a released `3.1.0` (#9) |
-| `supported-release` | the version gate accepts a released `4.1.0` at the floor itself |
+| `release-4-1-0` | a released `4.1.0` is refused, and `--version` is the only call that reaches it — no probe, hotplug or refresh read follows ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)) |
 | `malformed` | output the parser cannot read is refused, never half-read |
 | `hang` | a binary that never answers is killed by the call timeout ([ADR 0012](../decisions/0012-hardening-the-cli-boundary-and-the-supply-chain.md)) |
 | `hang-forking` | the same hang with a *child* holding the pipes — the timeout bounds the call, not just the process that was spawned (#50) |

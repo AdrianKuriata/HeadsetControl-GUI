@@ -43,6 +43,9 @@ flowchart LR
   and the `DeviceAccess` seam that tells "no udev rule" from "headset switched
   off". Pure; returns the `Detection` verdict the state machine renders
   ([ADR 0010](../decisions/0010-binary-detection-and-permission-diagnosis.md)).
+  The version is vetted from `--version` before any call that reads a device,
+  and the adapter refuses device calls until it has been
+  ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)).
 - `backend/exec.rs` — the app's impure edges: the one
   `Command::new("headsetcontrol")` behind `CliRunner`, the hidraw lookup behind
   `DeviceAccess`, and the two `DeviceWatcher` implementations (`UdevWatcher`,

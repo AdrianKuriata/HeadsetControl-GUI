@@ -3,8 +3,10 @@
 ## Status
 Accepted (2026-07-24)
 
-The version floor below is superseded by [0016](0016-version-floor-is-a-latency-floor.md);
-the detection verdict and the `DeviceAccess` seam stand.
+The version floor below is superseded by [0016](0016-version-floor-is-a-latency-floor.md)
+and then [0017](0017-refuse-binaries-that-damage-the-headset.md), which also reverses
+"uncomparable builds are accepted" and reads the version from `--version`; the
+detection verdict and the `DeviceAccess` seam stand.
 
 ## Context
 

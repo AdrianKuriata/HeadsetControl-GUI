@@ -50,12 +50,16 @@ stateDiagram-v2
 
 Two questions, in this order ([ADR 0010](../decisions/0010-binary-detection-and-permission-diagnosis.md)):
 
-1. `backend.detect()` — one CLI call whose json envelope carries the binary's
-   own version *and* the device list. It answers `ready`, `missing_binary`,
+1. `backend.detect()` — `headsetcontrol --version` first, then, only if that
+   version is safe, one json call for the device list
+   ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)):
+   on a binary older than 4.1.1 the json call itself is what shifts a Maxwell's
+   balance. It answers `ready`, `missing_binary`,
    `bad_version { found, required }` or `no_permissions`; `found` is `null` when
    the binary's output could not be read at all. Rust decides all of it
    (`backend/detect.rs`), including the minimum version, so the UI holds no
-   version knowledge.
+   version knowledge. Until a detection passes, the adapter refuses every call
+   that reads or writes a device, the Rust hotplug loop's included.
 2. `backend.listDevices()` — only once detection passed, because a device list
    read through a binary that cannot reach the hardware would just look like
    "no headset connected".
