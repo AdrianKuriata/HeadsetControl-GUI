@@ -1,7 +1,7 @@
 {
   "name": "HeadsetControl",
-  "version": "continuous-52-gfe086cd-modified",
-  "api_version": "1.4",
+  "version": "4.1.0-12-gca98ed4",
+  "api_version": "1.5",
   "hidapi_version": "0.14.0",
   "device_count": 2,
   "devices": [
@@ -29,7 +29,8 @@
         "CAP_VOLUME_LIMITER",
         "CAP_BT_WHEN_POWERED_ON",
         "CAP_BT_CALL_VOLUME",
-        "CAP_NOISE_FILTER"
+        "CAP_NOISE_FILTER",
+        "CAP_SIDETONE_STATUS"
       ],
       "capabilities_str": [
         "sidetone",
@@ -48,7 +49,8 @@
         "volume limiter",
         "bluetooth when powered on",
         "bluetooth call volume",
-        "microphone noise filter"
+        "microphone noise filter",
+        "sidetone status"
       ],
       "battery": {
         "status": "BATTERY_AVAILABLE",
@@ -65,15 +67,64 @@
       },
       "equalizer_presets_count": 4,
       "equalizer_presets": {
-        "flat": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        "bass boost": [6.0, 4.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        "treble boost": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 4.0, 6.0, 6.0],
-        "v-shape": [4.0, 2.0, 0.0, -2.0, -2.0, -2.0, 0.0, 2.0, 4.0, 4.0]
+        "flat": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bass boost": [
+          6.0,
+          4.0,
+          2.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "treble boost": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          2.0,
+          4.0,
+          6.0,
+          6.0
+        ],
+        "v-shape": [
+          4.0,
+          2.0,
+          0.0,
+          -2.0,
+          -2.0,
+          -2.0,
+          0.0,
+          2.0,
+          4.0,
+          4.0
+        ]
       },
-      "chatmix": 64
+      "chatmix": 64,
+      "sidetone": {
+        "level": 85,
+        "device_level": 2,
+        "name": "Medium"
+      }
     },
     {
-      "status": "partial",
+      "status": "success",
       "device": "Audeze Maxwell 2",
       "vendor": "Audeze LLC",
       "product": "Audeze Maxwell XBOX Dongle",
@@ -98,14 +149,11 @@
         "microphone noise filter"
       ],
       "battery": {
-        "status": "BATTERY_UNAVAILABLE",
-        "level": -1
+        "status": "BATTERY_AVAILABLE",
+        "level": 95
       },
       "equalizer_presets_count": 10,
-      "errors": {
-        "battery": "Could not open device",
-        "chatmix": "Could not open device"
-      }
+      "chatmix": 64
     }
   ]
 }

@@ -15,7 +15,8 @@ export const en = {
   // Shared by the missing-binary and bad-version screens: both end in the same
   // place, a signed package with a source build behind it (InstallInstructions.vue).
   install: {
-    packages: "Install the signed package",
+    repositories: "Install from upstream's repository",
+    packages: "Or download the signed package",
     verify: "Check the signature first",
     udev: "The package also installs the udev rules that let this app reach the headset.",
     source: "Or build it from source",
@@ -127,7 +128,8 @@ export const pl: Messages = {
     writeFailed: "Zestaw odrzucił zmianę {capability}.",
   },
   install: {
-    packages: "Zainstaluj podpisany pakiet",
+    repositories: "Zainstaluj z repozytorium upstreamu",
+    packages: "Albo pobierz podpisany pakiet",
     verify: "Najpierw sprawdź podpis",
     udev: "Pakiet instaluje też reguły udev, dzięki którym aplikacja sięgnie do zestawu.",
     source: "Albo zbuduj ze źródeł",

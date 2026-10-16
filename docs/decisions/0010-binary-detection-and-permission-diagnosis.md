@@ -3,6 +3,9 @@
 ## Status
 Accepted (2026-07-24)
 
+The version floor below is superseded by [0016](0016-version-floor-is-a-latency-floor.md);
+the detection verdict and the `DeviceAccess` seam stand.
+
 ## Context
 
 Startup has to route to `missing-binary`, `bad-version` or `no-permissions`

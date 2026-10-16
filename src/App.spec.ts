@@ -98,7 +98,7 @@ describe("App", () => {
   it.each([
     { detection: { kind: "missing_binary" }, shows: "headsetcontrol not found" },
     {
-      detection: { kind: "bad_version", found: "3.1.0", required: "4.0.0" },
+      detection: { kind: "bad_version", found: "3.1.0", required: "4.1.0" },
       shows: "headsetcontrol is too old",
     },
     { detection: { kind: "no_permissions" }, shows: "No permission to reach the headset" },

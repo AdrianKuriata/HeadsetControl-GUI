@@ -456,6 +456,8 @@ mod tests {
     const EMPTY: &str = include_str!("../../../docs/fixtures/no-devices.json");
     const UNKNOWN_CAP: &str = include_str!("../../../docs/fixtures/unknown-capability.json");
     const MALFORMED: &str = include_str!("../../../docs/fixtures/malformed-truncated.json");
+    /// What the binary the fixtures were recorded from calls itself.
+    const RECORDED_VERSION: &str = "4.1.0-12-gca98ed4";
 
     const MAXWELL: &str = "3329:4b28";
 
@@ -626,7 +628,7 @@ mod tests {
             DeviceState {
                 battery: Some(Battery {
                     status: BatteryStatus::Available,
-                    level: Some(92),
+                    level: Some(95),
                 }),
                 chatmix: Some(64),
             }
@@ -875,7 +877,7 @@ mod tests {
 
     #[test]
     fn detects_a_released_binary_that_is_too_old() {
-        let json = HEALTHY.replace("continuous-52-gfe086cd-modified", "3.1.0");
+        let json = HEALTHY.replace(RECORDED_VERSION, "3.1.0");
 
         assert_eq!(
             backend(&json).detect(),
@@ -907,7 +909,7 @@ mod tests {
     #[test]
     fn detects_output_that_names_no_version_as_an_incompatible_binary() {
         // Json this app can read, from a CLI too old to say what it is.
-        let json = HEALTHY.replace("\"version\": \"continuous-52-gfe086cd-modified\",", "");
+        let json = HEALTHY.replace(&format!("\"version\": \"{RECORDED_VERSION}\","), "");
 
         assert_eq!(
             backend(&json).detect(),

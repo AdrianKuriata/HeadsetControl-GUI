@@ -5,13 +5,17 @@
 CARGO := cargo --locked
 RS_MANIFEST := src-tauri/Cargo.toml
 
+# Where `make dev-upstream` keeps its build of upstream master (see ADR 0016).
+UPSTREAM_DIR := .upstream/HeadsetControl
+UPSTREAM_BIN := $(UPSTREAM_DIR)/build/headsetcontrol
+
 # Commit range checked by `make commitlint`; CI overrides it with the PR's range.
 COMMITLINT_FROM ?= origin/main
 COMMITLINT_TO ?= HEAD
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev dev-mock build build-ci gen \
+.PHONY: help setup dev dev-mock dev-upstream build build-ci gen \
         fe-lint fe-typecheck fe-test fe-coverage fe-e2e smoke fe-check \
         rs-fmt rs-lint rs-test rs-coverage rs-check \
         commitlint format lint test coverage ci gen-check audit
@@ -30,6 +34,17 @@ dev: ## Run the app in development mode
 
 dev-mock: ## Run the frontend alone against the scripted MockBackend
 	VITE_BACKEND=mock npm run dev
+
+# Released headsetcontrol up to 4.1.0 sends a parameter-setting packet on every
+# info read that permanently shifts an Audeze Maxwell's audio balance (upstream
+# #561, fixed in #577 after the tag). The refresh loop reads every 5 s, so `make
+# dev` against a packaged binary sends it constantly. Drop this target once the
+# fix is in a release — ADR 0016.
+dev-upstream: $(UPSTREAM_BIN) ## Run the app against a build of upstream master (Audeze-safe)
+	PATH="$(CURDIR)/$(UPSTREAM_DIR)/build:$$PATH" npm run tauri dev
+
+$(UPSTREAM_BIN):
+	scripts/upstream-headsetcontrol.sh $(UPSTREAM_DIR)
 
 build: ## Production build (bundles via tauri)
 	npm run tauri build

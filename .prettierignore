@@ -2,6 +2,7 @@
 .claude/settings.local.json
 
 # Build and test artifacts
+.upstream
 dist
 coverage
 playwright-report
