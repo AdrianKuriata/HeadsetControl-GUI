@@ -18,6 +18,22 @@ const OTHER_HEADSET = "1038:12aa";
  * pile more writes on top of a call that is still in flight — no timers, and no
  * dependence on how many microtasks the store happens to await.
  */
+function holdingReads() {
+  const backend = new MockBackend();
+  const asked: string[] = [];
+  const held: (() => void)[] = [];
+
+  backend.deviceState = (deviceId) => {
+    asked.push(deviceId);
+
+    return new Promise((resolve) => {
+      held.push(() => resolve({ battery: null, chatmix: 1 }));
+    });
+  };
+
+  return { backend, asked, release: () => held.splice(0).forEach((resolve) => resolve()) };
+}
+
 function holding() {
   const backend = new MockBackend();
   const sent: ParamValue[] = [];
@@ -94,6 +110,60 @@ describe("the device store", () => {
       await store.refresh(backend);
 
       expect(store.readings).toEqual(READINGS);
+    });
+
+    it("asks once while a read of the same headset is still out", async () => {
+      // A headset that is off takes 11 s to answer and the tick is every 5 s.
+      const store = focused();
+      const { backend, asked, release } = holdingReads();
+
+      const first = store.refresh(backend);
+      await store.refresh(backend);
+      release();
+      await first;
+
+      expect(asked).toHaveLength(1);
+      expect(store.readings).toEqual({ battery: null, chatmix: 1 });
+    });
+
+    it("reads again once the previous read has finished", async () => {
+      const store = focused();
+      const { backend, asked, release } = holdingReads();
+
+      const first = store.refresh(backend);
+      release();
+      await first;
+
+      const second = store.refresh(backend);
+      release();
+      await second;
+
+      expect(asked).toHaveLength(2);
+    });
+
+    it("reads again after a read that failed", async () => {
+      const store = focused();
+      const backend = new MockBackend();
+      backend.fail("deviceState", REFUSED);
+      await store.refresh(backend);
+
+      const healthy = new MockBackend();
+      await store.refresh(healthy);
+
+      expect(store.readings).toEqual(READINGS);
+    });
+
+    it("lets a swapped-in headset read while the old one is still out", async () => {
+      const store = focused();
+      const { backend, asked, release } = holdingReads();
+
+      const old = store.refresh(backend);
+      store.focus(OTHER_HEADSET);
+      const fresh = store.refresh(backend);
+      release();
+      await Promise.all([old, fresh]);
+
+      expect(asked).toEqual([MAXWELL2_XBOX.id, OTHER_HEADSET]);
     });
 
     it("drops a reading that arrives after the headset was swapped", async () => {

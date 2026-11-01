@@ -29,12 +29,13 @@ pub const BINARY: &str = "headsetcontrol";
 
 /// How long one invocation may take before it is killed.
 ///
-/// `headsetcontrol` answers in well under a second, but a headset asleep behind
-/// its dongle makes it sit on usb timeouts first. Ten seconds is far past
-/// anything healthy and still bounded, which is the point: without a limit a
-/// wedged binary blocks its caller forever, and since the hotplug loop and the
-/// value refresh both call in, forever means the app never recovers.
-const CALL_TIMEOUT: Duration = Duration::from_secs(10);
+/// `headsetcontrol` answers in well under a second, but a headset that is off
+/// behind its dongle makes every read run out its retries: 11.45 s measured for
+/// a listing on a Maxwell 2 with 4.2.0 (ADR 0018). Fifteen seconds clears that
+/// and is still bounded, which is the point: without a limit a wedged binary
+/// blocks its caller forever, and since the hotplug loop and the value refresh
+/// both call in, forever means the app never recovers.
+const CALL_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// How often the child is looked at while waiting. A healthy call is finished
 /// within a tick or two, and a tick costs one `waitpid` that returns nothing.

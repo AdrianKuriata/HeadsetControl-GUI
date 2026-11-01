@@ -128,7 +128,6 @@ no target, add one. Package manager is **npm** (not pnpm/yarn).
 |---|---|
 | Install deps | `make setup` |
 | Run app (dev) | `make dev` |
-| Run app against an Audeze-safe binary | `make dev-upstream` |
 | Production build | `make build` |
 | Compile-only build (CI gate) | `make build-ci` |
 | Regenerate `types.gen.ts` | `make gen` |
@@ -295,24 +294,23 @@ and `0x4b28` (Xbox — our PR `Sapd/HeadsetControl#540`, merged 2026-07-23). Iss
 closed; what remains of the profile work is the `0x4b28 → 'xbox'` entry in
 `profiles/audeze-maxwell2.ts` (#17).
 
-`MIN_VERSION` in `backend/detect.rs` is **4.1.1**, a release that does not exist yet
-(#77, [ADR 0017](docs/decisions/0017-refuse-binaries-that-damage-the-headset.md)). 4.0.0 and
-4.1.0 send a parameter-setting packet on every Maxwell status read that shifts the headset's
-audio balance permanently (upstream #561, removed by #577 after the 4.1.0 tag), and on 4.1.0
-*every* JSON call without an action is such a read — probe, hotplug listing, the 5 s
-refresh. So detection asks `--version` (HID enumeration only, no device I/O) before any
-JSON call, and the adapter refuses device calls until a detection has vetted the binary.
-A git build counts from `4.1.0-8-g…` (`FIRST_SAFE_GIT_BUILD`, #577 is the 8th commit after
-the tag); an uncomparable `continuous-…` build is refused. 4.1.0 is still the latency floor
-of ADR 0016 (writes 2.90 s → 0.07 s). Install screens offer upstream's PPA / COPR / AUR first,
-the signed packages second, a source build last; the bad-version screen says to build from
-source while 4.1.1 is unreleased.
+`MIN_VERSION` in `backend/detect.rs` is **4.2.0** (#84,
+[ADR 0018](docs/decisions/0018-a-headset-that-is-off-is-slow-not-broken.md)). 4.0.0 and 4.1.0
+send a parameter-setting packet on every Maxwell status read that shifts the headset's audio
+balance permanently (upstream #561, removed by #577; no 4.1.1 shipped), and *every* JSON call
+without an action is such a read — probe, hotplug listing, the 5 s refresh. So detection asks
+`--version` (HID enumeration only, no device I/O) before any JSON call, and the adapter
+refuses device calls until a detection has vetted the binary
+([ADR 0017](docs/decisions/0017-refuse-binaries-that-damage-the-headset.md)). A git build is
+judged on its tag; an uncomparable `continuous-…` build is refused. Install screens offer
+upstream's PPA / COPR / AUR first, the signed packages second, a source build last.
 
-**`make dev-upstream`** builds master into `.upstream/` and runs the app against that,
-refusing to build if the packet ever comes back. **Never record a fixture that reads the
-real Maxwell from a released binary**; writes are unaffected and may be recorded from the
-release (`docs/architecture/testing.md`). When 4.1.1 ships: drop `FIRST_SAFE_GIT_BUILD`, the
-`dev-upstream` target and its script.
+4.2.0 replaced the Maxwell driver with the real protocol (upstream #591). A read takes
+**0.45 s**, but each one retries three times at 1.25 s, so a headset that is off costs
+**11.45 s** per JSON call. `CALL_TIMEOUT` (15 s) has to clear that, and the refresh loop skips
+a tick while a read is out. **Never record a fixture that reads the real Maxwell from a release
+below the floor**, and capture what a new release sends before pointing it at the headset
+(`docs/architecture/testing.md`).
 
 4.1.0 also adds capabilities this app does not render yet — a parametric equalizer,
 `CAP_SIDETONE_STATUS` (#68), USB vendor/product names. Nothing breaks on them: an unknown

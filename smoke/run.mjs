@@ -33,11 +33,11 @@ const PORT = Number(process.env.SMOKE_PORT ?? 4444);
 
 /**
  * Long enough to cover a cold launch plus the worst wait a case can produce: two
- * of the adapter's 10 s call timeouts back to back, because the hotplug loop
+ * of the adapter's 15 s call timeouts back to back, because the hotplug loop
  * lists devices on its own thread while the startup probe runs and the two are
  * serialised against each other. Twice that, so a slow CI runner is not a flake.
  */
-const TIMEOUT = 45_000;
+const TIMEOUT = 65_000;
 
 const SIDETONE = "[data-capability='CAP_SIDETONE']";
 
@@ -86,6 +86,13 @@ const CASES = [
         `a call besides --version reached the binary: ${made.join(" | ")}`,
       );
     },
+  },
+  {
+    // A headset that is off is slow, not broken. Its listing outlasted the old
+    // 10 s call timeout and the app called a working binary missing (#84).
+    name: "a headset that is off still lands on the ready screen",
+    scenario: "headset-off",
+    check: (app) => app.expectText("h1", "Audeze Maxwell 2"),
   },
   {
     name: "output the adapter cannot read lands on the bad-version screen",

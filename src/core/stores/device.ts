@@ -46,6 +46,11 @@ export const useDeviceStore = defineStore("device", () => {
   /** The failure the toast shows, if any. */
   const failure = ref<WriteFailure | null>(null);
 
+  // The headset a read is out for. A headset that is off takes 11 s to answer and
+  // the tick is every 5 s, so without this the reads would stack up behind the
+  // runner and hold up every write. Kept per headset: a swap must not wait.
+  let reading: string | null = null;
+
   // Which write is the newest one per capability. Comparing the stored value
   // instead would compare a reactive proxy with the raw object it wraps, and a
   // slider can produce two writes carrying equal values anyway.
@@ -86,14 +91,22 @@ export const useDeviceStore = defineStore("device", () => {
    */
   async function refresh(backend: HeadsetBackend): Promise<void> {
     const id = deviceId.value;
-    if (id === null) {
+    if (id === null || id === reading) {
       return;
     }
 
-    const values = await readDeviceState(backend, id);
+    reading = id;
 
-    if (values && deviceId.value === id) {
-      readings.value = values;
+    try {
+      const values = await readDeviceState(backend, id);
+
+      if (values && deviceId.value === id) {
+        readings.value = values;
+      }
+    } finally {
+      if (reading === id) {
+        reading = null;
+      }
     }
   }
 

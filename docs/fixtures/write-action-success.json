@@ -1,7 +1,7 @@
 {
   "name": "HeadsetControl",
-  "version": "4.1.0",
-  "api_version": "1.5",
+  "version": "4.2.0",
+  "api_version": "1.6",
   "hidapi_version": "0.14.0",
   "actions": [
     {
@@ -38,7 +38,12 @@
         "CAP_BT_WHEN_POWERED_ON",
         "CAP_BT_CALL_VOLUME",
         "CAP_NOISE_FILTER",
-        "CAP_SIDETONE_STATUS"
+        "CAP_SIDETONE_STATUS",
+        "CAP_ANC",
+        "CAP_ANC_STARTUP_MODE",
+        "CAP_ANC_BUTTON_MODES",
+        "CAP_MICROPHONE_ATTACHMENT_STATUS",
+        "CAP_MICROPHONE_MUTE_STATUS"
       ],
       "capabilities_str": [
         "sidetone",
@@ -58,7 +63,12 @@
         "bluetooth when powered on",
         "bluetooth call volume",
         "microphone noise filter",
-        "sidetone status"
+        "sidetone status",
+        "anc",
+        "anc startup mode",
+        "anc button modes",
+        "microphone attachment status",
+        "microphone mute status"
       ],
       "equalizer": {
         "bands": 10,

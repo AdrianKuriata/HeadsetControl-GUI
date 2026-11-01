@@ -20,8 +20,8 @@ fi
 
 # `--version` is the first thing the adapter asks, before any call that reads a
 # device. The answer is what the scenario's binary calls itself: by default the
-# master build the recorded fixtures came from, which carries upstream #577.
-version="4.1.0-12-gca98ed4"
+# release the recorded fixtures came from.
+version="4.2.0"
 case "$scenario" in
   old-release) version="3.1.0" ;;
   release-4-1-0) version="4.1.0" ;;
@@ -69,6 +69,14 @@ case "$scenario" in
     # anyway (issue #50). Nothing upstream forks today, but 4.0.0 is a rewrite
     # and a bound that only holds for well-behaved binaries is not a bound.
     sleep 60
+    ;;
+  headset-off)
+    # What a Maxwell 2 does with the dongle in and the headset off: three reads,
+    # each retried to its timeout, measured at 11.45 s on 4.2.0 (#84).
+    if [ "$writing" = no ]; then
+      sleep 11.5
+    fi
+    cat "$fixtures/maxwell2-xbox-partial-errors.json"
     ;;
   malformed)
     cat "$fixtures/malformed-truncated.json"

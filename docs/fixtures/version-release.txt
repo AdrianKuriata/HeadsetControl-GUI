@@ -1,1 +1,1 @@
-HeadsetControl 4.1.0
+HeadsetControl 4.2.0

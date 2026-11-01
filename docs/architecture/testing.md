@@ -36,15 +36,15 @@ parser: keep existing fixtures, add new ones for new formats.
 
 | Fixture | Source | Covers |
 |---|---|---|
-| [`maxwell2-xbox-output-json.json`](../fixtures/maxwell2-xbox-output-json.json) | recorded (4.1.0 git build — see below) | a healthy device: capabilities, battery level, chatmix |
-| [`maxwell2-xbox-partial-errors.json`](../fixtures/maxwell2-xbox-partial-errors.json) | recorded (headset powered off) | present but unreadable — `status: "partial"`, `level: -1`, an `errors` map. A missing udev rule produces the same shape, so #9 cannot tell them apart from this alone |
-| [`test-device-multi.json`](../fixtures/test-device-multi.json) | recorded (`--test-device`, 4.1.0 git build) | two devices at once, and the CLI's full capability vocabulary — which since 4.1.0 includes `CAP_SIDETONE_STATUS` and its `sidetone` object. The app does not render that one yet (#68); it is here as a capability the registry logs and skips, which is the point |
-| [`write-actions-mixed.json`](../fixtures/write-actions-mixed.json) | composed from two 4.1.0 recordings | the write shape: an `actions` array with one success and one failure. Every byte was emitted by a real 4.1.0; only the pairing is authored, because a second device that refuses to open cannot be produced on demand |
+| [`maxwell2-xbox-output-json.json`](../fixtures/maxwell2-xbox-output-json.json) | recorded (real Maxwell 2, 4.2.0) | a healthy device: capabilities, battery level, chatmix |
+| [`maxwell2-xbox-partial-errors.json`](../fixtures/maxwell2-xbox-partial-errors.json) | recorded (real Maxwell 2 powered off, 4.2.0) | present but unreadable — `status: "partial"`, `level: -1`, an `errors` map of timeouts |
+| [`test-device-multi.json`](../fixtures/test-device-multi.json) | composed from two 4.2.0 recordings | two devices at once, and the CLI's full capability vocabulary — which since 4.1.0 includes `CAP_SIDETONE_STATUS` and its `sidetone` object. The app does not render that one yet (#68); it is here as a capability the registry logs and skips, which is the point |
+| [`write-actions-mixed.json`](../fixtures/write-actions-mixed.json) | composed from two 4.2.0 recordings | the write shape: an `actions` array with one success and one failure. Every byte was emitted by a real 4.2.0; only the pairing is authored, because one device cannot both accept and refuse a write |
 | [`no-devices.json`](../fixtures/no-devices.json) | hand-authored | nothing connected — an empty list, not an error |
 | [`unknown-capability.json`](../fixtures/unknown-capability.json) | hand-authored | `CAP_FROM_THE_FUTURE` passing through untouched; a charging battery |
 | [`malformed-truncated.json`](../fixtures/malformed-truncated.json) | hand-authored | output cut off mid-string — must be rejected, never half-read |
-| [`version-release.txt`](../fixtures/version-release.txt) | recorded (`--version`, 4.1.0) | the line the version gate parses. `--version` only enumerates USB ids, so recording it from the release is safe; the tests derive every other version from it ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)) |
-| [`write-action-success.json`](../fixtures/write-action-success.json) | recorded (`--test-device`, 4.1.0) | a write everything accepted. Since upstream #549 a write lists the devices but reads no values from them, which is what this fixture pins |
+| [`version-release.txt`](../fixtures/version-release.txt) | recorded (`--version`, 4.2.0) | the line the version gate parses. `--version` only enumerates USB ids; the tests derive every other version from it ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)) |
+| [`write-action-success.json`](../fixtures/write-action-success.json) | recorded (`--test-device`, 4.2.0) | a write everything accepted. Since upstream #549 a write lists the devices but reads no values from them, which is what this fixture pins |
 
 Recorded fixtures are byte-identical to what the binary printed, so
 `docs/fixtures/` is in `.prettierignore` (the truncated one cannot be parsed at
@@ -53,17 +53,19 @@ produce them on demand.
 
 Two recording rules, both about the Maxwell 2:
 
-- **Anything that reads the real headset is recorded from a git build, never
-  from released 4.1.0.** 4.1.0 still sends the parameter-setting packet that
-  [Sapd/HeadsetControl#577](https://github.com/Sapd/HeadsetControl/pull/577)
-  removed, and it shifts the headset's audio balance for good. Such fixtures
-  therefore carry a version like `4.1.0-12-gca98ed4`. The app itself refuses
-  anything older than that build
-  ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)).
-- **Anything the mock device can produce is recorded from released 4.1.0**, with
-  `--test-device -d 0xf00b:0xa00c` so the run never touches the Maxwell.
-  `--test-device=1` makes every write fail, which is where a recorded failure
-  action comes from.
+- **Anything that reads the real headset is recorded from a release the version gate
+  accepts, never from an older one.** Up to 4.1.0 a read sends the parameter-setting
+  packet that [Sapd/HeadsetControl#577](https://github.com/Sapd/HeadsetControl/pull/577)
+  removed, and it shifts the headset's audio balance for good.
+- **Anything the mock device can produce is recorded with `--test-device -d
+  0xf00b:0xa00c`**, inside `bwrap --dev-bind / / --dev /dev --tmpfs /sys/class/hidraw`
+  so the run cannot reach the Maxwell. `--test-device=1` makes every write fail, which
+  is where a recorded failure action comes from.
+
+Before pointing a new release at the real headset, capture what it sends: the packaged
+binary links hidapi dynamically, so an `LD_PRELOAD` fake that answers as a Maxwell and
+logs every `hid_write`, run in that same sandbox, shows the exact bytes. Run it on 4.1.0
+first as the control: its `-b` must log the write to key `0x25`.
 
 ## Where tests live
 
@@ -128,6 +130,7 @@ asserts the adapter assembled the CLI arguments the binary actually wants
 | `no-devices` | an empty list is "nothing connected", not an error |
 | `old-release` | the version gate rejects a released `3.1.0` (#9) |
 | `release-4-1-0` | a released `4.1.0` is refused, and `--version` is the only call that reaches it — no probe, hotplug or refresh read follows ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)) |
+| `headset-off` | a listing that takes 11.5 s, as a Maxwell 2 that is off does, still lands on the device screen ([ADR 0018](../decisions/0018-a-headset-that-is-off-is-slow-not-broken.md)) |
 | `malformed` | output the parser cannot read is refused, never half-read |
 | `hang` | a binary that never answers is killed by the call timeout ([ADR 0012](../decisions/0012-hardening-the-cli-boundary-and-the-supply-chain.md)) |
 | `hang-forking` | the same hang with a *child* holding the pipes — the timeout bounds the call, not just the process that was spawned (#50) |

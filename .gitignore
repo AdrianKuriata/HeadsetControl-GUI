@@ -32,5 +32,3 @@ target
 *.sln
 *.sw?
 
-# Upstream headsetcontrol build for `make dev-upstream`
-.upstream
