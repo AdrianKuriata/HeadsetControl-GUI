@@ -6,6 +6,8 @@ Accepted (2026-10-16). Supersedes the floor in
 [0016](0016-version-floor-is-a-latency-floor.md) and the "uncomparable builds are
 accepted" rule of [0010](0010-binary-detection-and-permission-diagnosis.md); the
 rest of both stands.
+No 4.1.1 shipped: [0018](0018-a-headset-that-is-off-is-slow-not-broken.md) moves the
+floor to 4.2.0 and removes the git-build exception.
 
 ## Context
 

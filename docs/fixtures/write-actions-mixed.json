@@ -1,7 +1,7 @@
 {
   "name": "HeadsetControl",
-  "version": "4.1.0",
-  "api_version": "1.5",
+  "version": "4.2.0",
+  "api_version": "1.6",
   "hidapi_version": "0.14.0",
   "actions": [
     {
@@ -12,12 +12,12 @@
     },
     {
       "capability": "CAP_SIDETONE",
-      "device": "Audeze Maxwell 2",
+      "device": "HeadsetControl Test device",
       "status": "failure",
-      "error_message": "Could not open device"
+      "error_message": "HID communication error"
     }
   ],
-  "device_count": 2,
+  "device_count": 1,
   "devices": [
     {
       "status": "success",
@@ -44,7 +44,12 @@
         "CAP_BT_WHEN_POWERED_ON",
         "CAP_BT_CALL_VOLUME",
         "CAP_NOISE_FILTER",
-        "CAP_SIDETONE_STATUS"
+        "CAP_SIDETONE_STATUS",
+        "CAP_ANC",
+        "CAP_ANC_STARTUP_MODE",
+        "CAP_ANC_BUTTON_MODES",
+        "CAP_MICROPHONE_ATTACHMENT_STATUS",
+        "CAP_MICROPHONE_MUTE_STATUS"
       ],
       "capabilities_str": [
         "sidetone",
@@ -64,7 +69,12 @@
         "bluetooth when powered on",
         "bluetooth call volume",
         "microphone noise filter",
-        "sidetone status"
+        "sidetone status",
+        "anc",
+        "anc startup mode",
+        "anc button modes",
+        "microphone attachment status",
+        "microphone mute status"
       ],
       "equalizer": {
         "bands": 10,
@@ -124,33 +134,6 @@
           4.0
         ]
       }
-    },
-    {
-      "status": "success",
-      "device": "Audeze Maxwell 2",
-      "vendor": "Audeze LLC",
-      "product": "Audeze Maxwell XBOX Dongle",
-      "id_vendor": "0x3329",
-      "id_product": "0x4b28",
-      "capabilities": [
-        "CAP_SIDETONE",
-        "CAP_BATTERY_STATUS",
-        "CAP_INACTIVE_TIME",
-        "CAP_CHATMIX_STATUS",
-        "CAP_VOICE_PROMPTS",
-        "CAP_EQUALIZER_PRESET",
-        "CAP_NOISE_FILTER"
-      ],
-      "capabilities_str": [
-        "sidetone",
-        "battery",
-        "inactive time",
-        "chatmix",
-        "voice prompts",
-        "equalizer preset",
-        "microphone noise filter"
-      ],
-      "equalizer_presets_count": 10
     }
   ]
 }

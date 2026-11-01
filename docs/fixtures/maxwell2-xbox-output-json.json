@@ -1,7 +1,7 @@
 {
   "name": "HeadsetControl",
-  "version": "4.1.0-12-gca98ed4",
-  "api_version": "1.5",
+  "version": "4.2.0",
+  "api_version": "1.6",
   "hidapi_version": "0.14.0",
   "device_count": 1,
   "devices": [
@@ -19,7 +19,8 @@
         "CAP_CHATMIX_STATUS",
         "CAP_VOICE_PROMPTS",
         "CAP_EQUALIZER_PRESET",
-        "CAP_NOISE_FILTER"
+        "CAP_NOISE_FILTER",
+        "CAP_SIDETONE_STATUS"
       ],
       "capabilities_str": [
         "sidetone",
@@ -28,14 +29,19 @@
         "chatmix",
         "voice prompts",
         "equalizer preset",
-        "microphone noise filter"
+        "microphone noise filter",
+        "sidetone status"
       ],
       "battery": {
         "status": "BATTERY_AVAILABLE",
-        "level": 95
+        "level": 27
       },
       "equalizer_presets_count": 10,
-      "chatmix": 64
+      "chatmix": 64,
+      "sidetone": {
+        "level": 0,
+        "device_level": 0
+      }
     }
   ]
 }

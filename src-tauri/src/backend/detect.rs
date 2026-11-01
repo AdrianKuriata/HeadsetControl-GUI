@@ -13,31 +13,16 @@ use super::Device;
 
 /// The oldest `headsetcontrol` release this app accepts.
 ///
-/// `4.1.1` is the first release without the parameter-setting packet that 4.0.0
+/// `4.2.0` is the first release without the parameter-setting packet that 4.0.0
 /// and 4.1.0 send on every status read of an Audeze Maxwell: it permanently
 /// shifts the headset's audio balance, and only a factory reset in Audeze HQ
 /// undoes it (Sapd/HeadsetControl#561, removed in #577). This app reads status
 /// every few seconds, so on those releases it would send that packet
 /// constantly (ADR 0017).
-///
-/// It is also above `4.1.0`, the release where a parameter write stopped
-/// costing seconds (ADR 0016).
 const MIN_VERSION: Version = Version {
     major: 4,
-    minor: 1,
-    patch: 1,
-};
-
-/// The oldest *git* build accepted below [`MIN_VERSION`]: upstream master
-/// describes itself as `<tag>-<commits>-g<hash>`, and #577 is the 8th commit on
-/// top of `4.1.0` on a linear history. Drop it once 4.1.1 is released.
-const FIRST_SAFE_GIT_BUILD: GitBuild = GitBuild {
-    tag: Version {
-        major: 4,
-        minor: 1,
-        patch: 0,
-    },
-    commits: 8,
+    minor: 2,
+    patch: 0,
 };
 
 /// Whether the app may talk to a device node.
@@ -117,18 +102,13 @@ pub fn diagnose(devices: &[Device], access: &impl DeviceAccess) -> Detection {
 
 /// A version this app can work with?
 ///
-/// A release from [`MIN_VERSION`] on, or a git build that carries the fix
-/// ([`FIRST_SAFE_GIT_BUILD`]). A build that cannot be compared at all —
-/// `continuous-52-gfe086cd`, what a checkout produced before upstream #551 — is
-/// **refused**: nothing tells whether it sends the packet, and every one this
-/// app has met does.
+/// A git build names the tag it grew from (`4.2.0-3-gabcdef0`) and is judged on
+/// it. One that cannot be compared at all — `continuous-52-gfe086cd`, what a
+/// checkout produced before upstream #551 — is **refused**: nothing tells
+/// whether it sends the packet, and every one this app has met does.
 fn is_supported(version: Option<&str>) -> bool {
-    match version.map(GitBuild::parse) {
-        Some(Some(found)) => {
-            found.tag >= MIN_VERSION
-                || (found.tag == FIRST_SAFE_GIT_BUILD.tag
-                    && found.commits >= FIRST_SAFE_GIT_BUILD.commits)
-        }
+    match version.map(Version::parse) {
+        Some(Some(found)) => found >= MIN_VERSION,
         Some(None) => {
             log::info!("headsetcontrol reports an uncomparable version, refusing it");
             false
@@ -156,39 +136,22 @@ struct Version {
     patch: u32,
 }
 
-/// What a binary calls itself: the release it is, or the tag a git build grew
-/// from plus how many commits it carries on top (0 for a release).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct GitBuild {
-    tag: Version,
-    commits: u32,
-}
-
-impl GitBuild {
+impl Version {
     /// `None` for anything that does not start with a release number — a
     /// `continuous-…` build, or a string this app has never seen.
     fn parse(raw: &str) -> Option<Self> {
+        // `4.2.0-rc1` is release 4.2.0 for ordering purposes, and so is a git
+        // build on top of it; finer ranking is a precision this app has no use for.
         let raw = raw.trim().trim_start_matches('v');
-        let end = raw.find(['-', '+']).unwrap_or(raw.len());
-        let mut parts = raw[..end].split('.');
+        let release = &raw[..raw.find(['-', '+']).unwrap_or(raw.len())];
+        let mut parts = release.split('.');
 
-        let tag = Version {
+        Some(Self {
             major: number(parts.next())?,
             // A binary calling itself `2.6` is version 2.6.0.
             minor: number(parts.next()).unwrap_or(0),
             patch: number(parts.next()).unwrap_or(0),
-        };
-
-        // `4.1.0-12-gca98ed4` is 12 commits past 4.1.0; anything else after the
-        // release — `-rc1`, `+build7` — ranks as the release itself, a
-        // precision this app has no use for.
-        let mut suffix = raw[end..].strip_prefix('-').unwrap_or_default().split('-');
-        let commits = match (suffix.next(), suffix.next()) {
-            (Some(count), Some(hash)) if hash.starts_with('g') => count.parse().unwrap_or(0),
-            _ => 0,
-        };
-
-        Some(Self { tag, commits })
+        })
     }
 }
 
@@ -248,13 +211,13 @@ mod tests {
     fn refused(version: Option<&str>) -> Result<(), Detection> {
         Err(Detection::BadVersion {
             found: version.map(str::to_owned),
-            required: "4.1.1".to_owned(),
+            required: "4.2.0".to_owned(),
         })
     }
 
     #[test]
     fn accepts_the_minimum_version_and_anything_newer() {
-        for version in ["4.1.1", "4.1.2", "4.2.0", "5.0.0", "v4.1.1", " 4.1.1 "] {
+        for version in ["4.2.0", "4.2.1", "4.3.0", "5.0.0", "v4.2.0", " 4.2.0 "] {
             assert_eq!(vet(Some(version)), Ok(()), "{version} should be accepted");
         }
     }
@@ -263,7 +226,7 @@ mod tests {
     fn rejects_a_release_older_than_the_minimum() {
         // 4.1.0 included: it still sends the packet that shifts a Maxwell's
         // balance on every status read (Sapd/HeadsetControl#561).
-        for version in ["4.1.0", "4.0.0", "4.0.1", "3.1.0", "2.6", "3", "0.0.1"] {
+        for version in ["4.1.1", "4.1.0", "4.0.0", "3.1.0", "2.6", "3", "0.0.1"] {
             assert_eq!(
                 vet(Some(version)),
                 refused(Some(version)),
@@ -274,31 +237,16 @@ mod tests {
 
     #[test]
     fn ranks_a_pre_release_as_its_release() {
-        assert_eq!(vet(Some("4.1.1-rc1")), Ok(()));
+        assert_eq!(vet(Some("4.2.0-rc1")), Ok(()));
         assert_eq!(vet(Some("4.1.0+build7")), refused(Some("4.1.0+build7")));
     }
 
     #[test]
-    fn accepts_a_git_build_that_carries_the_fix() {
-        // Upstream #577 is the 8th commit on top of the 4.1.0 tag, so a master
-        // build describing itself as `4.1.0-8-g…` or later has it.
-        for version in [
-            "4.1.0-8-g6eb2c99",
-            "4.1.0-12-gca98ed4",
-            "4.1.0-16-gfbbce84-modified",
-            "4.1.1-3-gabcdef0",
-        ] {
+    fn ranks_a_git_build_as_the_tag_it_was_built_from() {
+        for version in ["4.2.0-3-gabcdef0", "4.2.0-16-gfbbce84-modified"] {
             assert_eq!(vet(Some(version)), Ok(()), "{version} should be accepted");
         }
-    }
-
-    #[test]
-    fn rejects_a_git_build_from_before_the_fix() {
-        for version in [
-            "4.1.0-7-g1234567",
-            "4.0.0-57-gdeadbee",
-            "3.1.0-200-gabcdef0",
-        ] {
+        for version in ["4.1.0-16-gfbbce84", "4.0.0-57-gdeadbee"] {
             assert_eq!(
                 vet(Some(version)),
                 refused(Some(version)),
@@ -331,7 +279,7 @@ mod tests {
 
     #[test]
     fn prints_the_required_version_the_way_the_screen_shows_it() {
-        assert_eq!(required_version(), "4.1.1");
+        assert_eq!(required_version(), "4.2.0");
     }
 
     // ── permissions ─────────────────────────────────────────────────────────

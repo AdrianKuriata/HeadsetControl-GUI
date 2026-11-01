@@ -89,7 +89,7 @@ export const en = {
       // The binary answered with something this app cannot read at all — an
       // old release that does not know the json output, most likely.
       bodyUnnamed: "This headsetcontrol could not be read; this app needs {required} or newer.",
-      why: "Older versions send a command on every status read that permanently shifts the audio balance of Audeze Maxwell headsets. If no release this new is out yet, build it from source — the last option below.",
+      why: "Older versions send a command on every status read that permanently shifts the audio balance of Audeze Maxwell headsets.",
     },
     noPermissions: {
       title: "No permission to reach the headset",
@@ -197,7 +197,7 @@ export const pl: Messages = {
       body: "Znaleziono wersję {found}, aplikacja wymaga {required} lub nowszej.",
       bodyUnnamed:
         "Nie udało się odczytać tego headsetcontrol; aplikacja wymaga {required} lub nowszej.",
-      why: "Starsze wersje przy każdym odczycie statusu wysyłają komendę, która trwale przesuwa balans dźwięku słuchawek Audeze Maxwell. Jeśli takie wydanie jeszcze nie wyszło, zbuduj headsetcontrol ze źródeł — ostatnia opcja poniżej.",
+      why: "Starsze wersje przy każdym odczycie statusu wysyłają komendę, która trwale przesuwa balans dźwięku słuchawek Audeze Maxwell.",
     },
     noPermissions: {
       title: "Brak uprawnień do urządzenia",

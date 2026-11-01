@@ -15,9 +15,6 @@ export default defineConfig(
     "test-results/**",
     "src-tauri/**",
     "src/core/types.gen.ts",
-    // `make dev-upstream` builds headsetcontrol here; CMake writes files called
-    // `compiler_depend.ts` that are not TypeScript at all.
-    ".upstream/**",
   ]),
   js.configs.recommended,
   // Type-aware, not just syntactic. What this buys over `recommended`:

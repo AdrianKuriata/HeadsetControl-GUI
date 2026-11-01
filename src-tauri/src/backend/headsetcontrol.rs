@@ -499,14 +499,16 @@ mod tests {
     const EMPTY: &str = include_str!("../../../docs/fixtures/no-devices.json");
     const UNKNOWN_CAP: &str = include_str!("../../../docs/fixtures/unknown-capability.json");
     const MALFORMED: &str = include_str!("../../../docs/fixtures/malformed-truncated.json");
-    /// `headsetcontrol --version` from the released 4.1.0.
+    /// `headsetcontrol --version` from the release the fixtures were recorded with.
     const VERSION_RELEASE: &str = include_str!("../../../docs/fixtures/version-release.txt");
-    /// What the binary the fixtures were recorded from calls itself.
-    const RECORDED_VERSION: &str = "4.1.0-12-gca98ed4";
+    /// What that release calls itself.
+    const RECORDED_VERSION: &str = "4.2.0";
+    /// A release that sends the packet the version gate exists for.
+    const UNSAFE_VERSION: &str = "4.1.0";
 
     /// What `--version` prints for a binary calling itself `version`.
     fn version_line(version: &str) -> String {
-        VERSION_RELEASE.replace("4.1.0", version)
+        VERSION_RELEASE.replace(RECORDED_VERSION, version)
     }
 
     const MAXWELL: &str = "3329:4b28";
@@ -641,6 +643,7 @@ mod tests {
                     "CAP_VOICE_PROMPTS".to_owned(),
                     "CAP_EQUALIZER_PRESET".to_owned(),
                     "CAP_NOISE_FILTER".to_owned(),
+                    "CAP_SIDETONE_STATUS".to_owned(),
                 ],
             }]
         );
@@ -711,7 +714,7 @@ mod tests {
             DeviceState {
                 battery: Some(Battery {
                     status: BatteryStatus::Available,
-                    level: Some(95),
+                    level: Some(27),
                 }),
                 chatmix: Some(64),
             }
@@ -787,7 +790,7 @@ mod tests {
         assert_eq!(
             parse_write(WRITE, "CAP_SIDETONE").unwrap_err(),
             BackendError::Failed {
-                message: "Could not open device".to_owned()
+                message: "HID communication error".to_owned()
             }
         );
     }
@@ -802,7 +805,7 @@ mod tests {
     #[test]
     fn describes_a_failure_the_cli_left_unexplained() {
         let json = WRITE.replace(
-            "\"error_message\": \"Could not open device\"",
+            "\"error_message\": \"HID communication error\"",
             "\"value\": 0",
         );
 
@@ -952,9 +955,8 @@ mod tests {
     }
 
     #[test]
-    fn accepts_the_recorded_output_of_a_development_build() {
-        // The fixture is real output from a master build — until 4.1.1 ships,
-        // the only kind that reads a Maxwell without shifting its balance.
+    fn accepts_the_recorded_output_of_the_minimum_release() {
+        // Real output from a real headset, as this release reports it.
         assert_eq!(backend(HEALTHY).detect(), Detection::Ready);
     }
 
@@ -974,14 +976,18 @@ mod tests {
 
     #[test]
     fn reads_the_version_the_way_a_release_prints_it() {
-        // The recorded release itself: 4.1.0 is below the floor.
+        assert_eq!(parse_version(VERSION_RELEASE), Some(RECORDED_VERSION));
+    }
+
+    #[test]
+    fn refuses_a_release_that_sends_the_balance_packet() {
         let backend = backend(HEALTHY);
-        backend.runner.report_version(VERSION_RELEASE);
+        backend.runner.report_version(&version_line(UNSAFE_VERSION));
 
         assert_eq!(
             backend.detect(),
             Detection::BadVersion {
-                found: Some("4.1.0".to_owned()),
+                found: Some(UNSAFE_VERSION.to_owned()),
                 required: detect::required_version(),
             }
         );
@@ -1016,7 +1022,7 @@ mod tests {
     #[test]
     fn makes_no_json_call_to_a_binary_it_refuses() {
         let backend = backend(HEALTHY);
-        backend.runner.report_version(VERSION_RELEASE);
+        backend.runner.report_version(&version_line(UNSAFE_VERSION));
 
         backend.detect();
 
@@ -1097,7 +1103,7 @@ mod tests {
         let backend = with_access(FakeRunner::replaying(HEALTHY), detect::Access::Granted);
         backend.detect();
 
-        backend.runner.report_version(VERSION_RELEASE);
+        backend.runner.report_version(&version_line(UNSAFE_VERSION));
         backend.detect();
 
         assert!(backend.list_devices().is_err());

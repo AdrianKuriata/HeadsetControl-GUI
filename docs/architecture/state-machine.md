@@ -53,7 +53,7 @@ Two questions, in this order ([ADR 0010](../decisions/0010-binary-detection-and-
 1. `backend.detect()` — `headsetcontrol --version` first, then, only if that
    version is safe, one json call for the device list
    ([ADR 0017](../decisions/0017-refuse-binaries-that-damage-the-headset.md)):
-   on a binary older than 4.1.1 the json call itself is what shifts a Maxwell's
+   on a binary older than 4.2.0 the json call itself is what shifts a Maxwell's
    balance. It answers `ready`, `missing_binary`,
    `bad_version { found, required }` or `no_permissions`; `found` is `null` when
    the binary's output could not be read at all. Rust decides all of it
